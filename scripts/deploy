@@ -1,0 +1,12 @@
+#!/bin/sh
+# Build app/ (Silver) on the VM, fake-sign it on this Mac with ldid (the phone's own
+# codesign_allocate rejects Xcode 3.2.6 binaries), install it on the phone and relaunch it.
+# The first install of a new URL scheme needs a SpringBoard restart before uiopen works.
+set -e
+cd "$(dirname "$0")/.."
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+tar c app | scripts/vm 'mkdir -p ~/build && tar x -C ~/build && make -s -C ~/build/app'
+scripts/vm 'tar c -C ~/build/app Silver.app' | tar x -C "$tmp"
+nix run nixpkgs#ldid -- -S "$tmp/Silver.app/Silver"
+tar c -C "$tmp" Silver.app | scripts/phone 'killall Silver 2>/dev/null; rm -rf /Applications/Silver.app && tar x -C /Applications && su mobile -c uicache 2>/dev/null'
+scripts/phone 'sleep 1; su mobile -c "uiopen silver:"'
