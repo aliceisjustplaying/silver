@@ -34,7 +34,7 @@ Build `app/` with `make` on the 10.6 machine. That produces `Silver.app`. Then:
 | Card (bottom right) or stock name (top left) | Switches film stock. |
 | Grid icon | Toggles a thirds grid. Silver remembers the grid and the stock. |
 | Thumbnail | Opens the Camera Roll. |
-| Share icon | Shows a QR code for `http://<phone>:8080/`. Scan it from another phone on the same Wi-Fi. Joining that phone's Personal Hotspot should also work but is untested. The page lists the whole Camera Roll, including screenshots, 60 per page. The server runs only while this screen is open. |
+| Share icon | Shows a QR code for `http://<phone>:8080/`. Scan it from another phone on the same Wi-Fi, or with the iPhone joined to that phone's Personal Hotspot. The page lists the whole Camera Roll, including screenshots, 60 per page. The server runs only while this screen is open. |
 | Touch and hold the viewfinder | Saves debug information to `~/Library/Logs/Silver/<time>/` on the phone and restarts the preview. Use it if the viewfinder ever looks wrong. |
 
 The running log is `/tmp/silver.log`. For development, the app also accepts `silver://` URLs: `shutter`, `stock`, `grid`, `share`, `unshare`, `roll`, `rollphoto`, `unroll`, `debug` and `screenshot`. For example, `su mobile -c "uiopen silver://shutter"` over SSH.

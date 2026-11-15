@@ -181,7 +181,6 @@ Verified from the Mac on the same Wi-Fi:
 
 Then the real test: from a modern iPhone on the apartment Wi-Fi, the gallery opened and showed both photos.
 
-Not done yet: sharing over another iPhone's Personal Hotspot.
 
 ## Day 1: interface, round two
 
@@ -319,3 +318,7 @@ Before release, a cleanup pass:
 - **README:** rewritten for people finding the repo.
 
 The build is warning-free with `-Wall`.
+
+## Day 1: sharing over a Personal Hotspot
+
+With the 2G joined to the iPhone 17 Pro's Personal Hotspot, sharing works: the modern phone, acting as the hotspot, can reach the 2G's web server. That means photos can come off the phone anywhere, without Wi-Fi or a cable.
