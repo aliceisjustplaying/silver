@@ -179,4 +179,6 @@ Verified from the Mac on the same Wi-Fi:
 - the gallery loads;
 - a 762 KB photo downloads in 0.85 s.
 
-Not done yet: a real phone scanning the QR code, and sharing over another iPhone's Personal Hotspot.
+Then the real test: from a modern iPhone on the apartment Wi-Fi, the gallery opened and showed both photos.
+
+Not done yet: sharing over another iPhone's Personal Hotspot.
