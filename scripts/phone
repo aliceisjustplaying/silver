@@ -1,0 +1,6 @@
+#!/bin/sh
+# SSH into the jailbroken iPhone 2G (OpenSSH 6.7 on the phone offers only ssh-rsa/ssh-dss host keys).
+# Override the address with IPHONE_HOST.
+exec ssh -i ~/.ssh/iphone2g -o IdentitiesOnly=yes -o HostKeyAlgorithms=+ssh-rsa \
+  -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts_iphone2g \
+  -o ConnectTimeout=15 -o LogLevel=ERROR root@"${IPHONE_HOST:-192.168.145.232}" "$@"

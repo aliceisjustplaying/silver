@@ -1,0 +1,11 @@
+#!/bin/sh
+# Build probe/ on the VM, fake-sign it on this Mac with ldid (the phone's own
+# codesign_allocate rejects the Xcode 3.2.6 binary), install it on the phone
+# and refresh SpringBoard's icon cache.
+set -e
+cd "$(dirname "$0")/.."
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+tar c probe | scripts/vm 'mkdir -p ~/build && tar x -C ~/build && make -s -C ~/build/probe'
+scripts/vm 'tar c -C ~/build/probe CamProbe.app' | tar x -C "$tmp"
+nix run nixpkgs#ldid -- -S "$tmp/CamProbe.app/CamProbe"
+tar c -C "$tmp" CamProbe.app | scripts/phone 'rm -rf /Applications/CamProbe.app && tar x -C /Applications && su mobile -c uicache'
