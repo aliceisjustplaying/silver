@@ -307,3 +307,15 @@ Measured with 43 items in the Camera Roll:
 - making every thumbnail the first time took 26.4 s in the background;
 - after that, the gallery page loads in 0.13 s;
 - fetching all 43 thumbnails six at a time, as Safari does, took 3.3 s.
+
+## Day 1: release cleanup
+
+Before release, a cleanup pass:
+- **Comments:** cut from about 150 lines to 60, keeping only the non-obvious ones (private-API signatures, hardware quirks and gotchas like `CGContextClip` consuming the path).
+- **Dead code:** removed an unused `on` state in `TextButton` and an unused `CSAccel` type.
+- **Log size:** `/tmp/silver.log` now starts over once it passes 1 MB, since the live view logs a line every 2 s.
+- **Version:** added a `CFBundleShortVersionString` of 1.0.
+- **Phone address:** `scripts/phone` reads it from `IPHONE_HOST` or an untracked `.phone-host` file instead of a hard-coded LAN address.
+- **README:** rewritten for people finding the repo.
+
+The build is warning-free with `-Wall`.

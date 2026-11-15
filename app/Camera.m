@@ -6,8 +6,8 @@ extern void gray_bgra(const uint32_t *src, uint32_t *dst, int npix, const uint32
 
 enum { kWidth = 304, kHeight = 400 };
 
-// Preview auto-exposure limit (MT9D112 ae.maxIndex, var 2.0x0C). Apple's default is 0x12,
-// which lets frames lengthen to about 5 fps in dim light; 4 keeps the preview near 15 fps.
+// MT9D112 ae.maxIndex (var 2.0x0C). Apple's 0x12 lets dim scenes drop to ~5 fps; 4 is meant to
+// hold ~15 fps (not yet measured in a dim scene).
 enum { kPreviewMaxIndex = 4 };
 
 static CSBuf makeDisplaySurface(void) {
@@ -66,7 +66,7 @@ static void photoCallback(CameraDeviceRef dev, int event, CFDataRef jpeg, CFDict
     CameraDeviceSetCaptureCallback(dev, photoCallback, self);
     CameraDeviceScheduleWithRunLoop(dev, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
     SensorWrite(dev, 0x2000c, 8, kPreviewMaxIndex);
-    SensorWrite(dev, 0x10003, 8, 5);                       // seq.cmd = refresh
+    SensorWrite(dev, 0x10003, 8, 5);
     err = CameraDeviceStartPreview(dev);
     Log(@"camera started (0x%08x)", err);
     windowStart = NowMs();
@@ -86,9 +86,7 @@ static void writePNG(const uint32_t *bgra, int w, int h, int rowBytes, NSString 
 
 - (NSString *)sensorSummary {
     if (!dev) return @"no camera";
-    // MT9D112: seq.mode 1.02, seq.state 1.04, ae.maxIndex 2.0C, ae.index 2.0D (8-bit);
-    // mode vars (16-bit): 7.03/7.05 preview output size, 7.0F-7.15 preview window (raw values,
-    // names not confirmed), 7.23/7.25 frame lines/line length.
+    // MT9D112 variables; see docs/private-camera-re.md. 7.0F-7.15 are unlabeled raw values.
     static const struct { uint32_t var; int bits; const char *name; } vars[] = {
         {0x10002, 8, "seq.mode"}, {0x10004, 8, "seq.state"}, {0x2000c, 8, "ae.maxIndex"}, {0x2000d, 8, "ae.index"},
         {0x70003, 16, "outW.A"}, {0x70005, 16, "outH.A"}, {0x7000f, 16, "7.0F"}, {0x70011, 16, "7.11"},
@@ -141,7 +139,7 @@ static void writePNG(const uint32_t *bgra, int w, int h, int rowBytes, NSString 
     CoreSurfaceBufferLock(s, 3); CoreSurfaceBufferLock(d, 3);
     const uint32_t *src = CoreSurfaceBufferGetBaseAddress(s);
     gray_bgra(src, CoreSurfaceBufferGetBaseAddress(d), kWidth * kHeight, table);
-    uint32_t sum = 0, n = 0;                               // sampled raw luma, for matching photos
+    uint32_t sum = 0, n = 0;
     for (int i = 0; i < kWidth * kHeight; i += 61, n++) {
         uint32_t p = src[i];
         sum += (29 * (p & 0xff) + 150 * ((p >> 8) & 0xff) + 77 * ((p >> 16) & 0xff)) >> 8;

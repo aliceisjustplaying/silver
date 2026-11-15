@@ -10,7 +10,7 @@ static CGImageRef (*pThumb)(CGImageSourceRef, size_t, CFDictionaryRef);
 static CFStringRef kQuality, kMaxPixels, kAlways, kTransform;
 
 BOOL ImageIOAvailable(void) {
-    static int state;                         // 0 unknown, 1 ok, -1 missing
+    static int state;
     if (state) return state > 0;
     void *h = dlopen("/System/Library/PrivateFrameworks/ImageIO.framework/ImageIO", RTLD_NOW);
     if (!h) h = dlopen("/System/Library/Frameworks/ImageIO.framework/ImageIO", RTLD_NOW);
@@ -24,7 +24,7 @@ BOOL ImageIOAvailable(void) {
         if ((k = dlsym(h, "kCGImageDestinationLossyCompressionQuality"))) kQuality = *k;
         if ((k = dlsym(h, "kCGImageSourceThumbnailMaxPixelSize"))) kMaxPixels = *k;
         if ((k = dlsym(h, "kCGImageSourceCreateThumbnailFromImageAlways"))) kAlways = *k;
-        if ((k = dlsym(h, "kCGImageSourceCreateThumbnailWithTransform"))) kTransform = *k;   // may be missing
+        if ((k = dlsym(h, "kCGImageSourceCreateThumbnailWithTransform"))) kTransform = *k;
     }
     state = (pDestCreate && pDestAdd && pDestFinalize && pSourceCreate && pThumb && kQuality && kMaxPixels && kAlways) ? 1 : -1;
     return state > 0;

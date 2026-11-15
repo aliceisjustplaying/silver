@@ -26,7 +26,6 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
 }
 - (void)setHighlighted:(BOOL)h { [super setHighlighted:h]; [self setNeedsDisplay]; }
 - (void)setEnabled:(BOOL)e { [super setEnabled:e]; [self setNeedsDisplay]; }
-// A thin gold ring around a flat gold crescent moon.
 - (void)drawRect:(CGRect)r {
     CGContextRef c = UIGraphicsGetCurrentContext();
     float k = (self.highlighted || !self.enabled) ? 0.5f : 1.0f;
@@ -40,7 +39,7 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
     CGContextAddEllipseInRect(c, moon); CGContextClip(c);     // clipping consumes the path
     CGContextAddEllipseInRect(c, moon);
     CGContextAddEllipseInRect(c, CGRectOffset(moon, d * 0.30f, -d * 0.22f));
-    CGContextEOFillPath(c);                                    // disk minus offset disk = crescent
+    CGContextEOFillPath(c);
     CGContextRestoreGState(c);
 }
 @end
@@ -52,12 +51,11 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
 }
 - (void)dealloc { [title release]; [super dealloc]; }
 - (void)setTitle:(NSString *)t { [title release]; title = [t copy]; [self setNeedsDisplay]; }
-- (void)setOn:(BOOL)o { on = o; [self setNeedsDisplay]; }
 - (void)setLeftAligned:(BOOL)l { left = l; [self setNeedsDisplay]; }
 - (void)setHighlighted:(BOOL)h { [super setHighlighted:h]; [self setNeedsDisplay]; }
 - (void)drawRect:(CGRect)r {
     UIFont *f = [UIFont systemFontOfSize:12];
-    [(on || self.highlighted ? GoldColor() : [UIColor whiteColor]) set];
+    [(self.highlighted ? GoldColor() : [UIColor whiteColor]) set];
     CGFloat w = SpacedWidth(title, f, 3);
     DrawSpaced(title, CGPointMake(left ? 10 : (self.bounds.size.width - w) / 2, (self.bounds.size.height - 15) / 2), f, 3);
 }
@@ -83,7 +81,7 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
     CGContextStrokeRect(c, CGRectInset(card, 2.5f, 2.5f));
     CGPoint m = CGPointMake(CGRectGetMidX(card), card.origin.y + card.size.height * 0.40f);
     CGContextSetLineWidth(c, 1.2f);
-    if (index == 0) {                                   // I: sun
+    if (index == 0) {                                   // sun
         CGContextFillEllipseInRect(c, CGRectMake(m.x - 4, m.y - 4, 8, 8));
         for (int i = 0; i < 12; i++) {
             float a = i * (float)M_PI / 6;
@@ -91,9 +89,9 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
             CGContextAddLineToPoint(c, m.x + cosf(a) * 9, m.y + sinf(a) * 9);
         }
         CGContextStrokePath(c);
-    } else if (index == 2) {                            // III: new moon (a full dark disk)
+    } else if (index == 2) {                            // new moon
         CGContextFillEllipseInRect(c, CGRectMake(m.x - 7, m.y - 7, 14, 14));
-    } else {                                            // II: ash haze (three wavy lines)
+    } else {                                            // haze
         for (int l = -1; l <= 1; l++) {
             CGFloat y = m.y + l * 5;
             CGContextMoveToPoint(c, m.x - 9, y);
@@ -124,7 +122,7 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
     else CGContextSetRGBStrokeColor(c, 1, 1, 1, 1);
     CGContextSetLineWidth(c, 1.2f);
     CGPoint m = CGPointMake(floorf(CGRectGetMidX(self.bounds)) + 0.5f, floorf(CGRectGetMidY(self.bounds)) + 0.5f);
-    if (kind == kIconGrid) {                            // 3x3 grid in a 15 px square
+    if (kind == kIconGrid) {
         CGRect sq = CGRectMake(m.x - 7.5f, m.y - 7.5f, 15, 15);
         CGContextStrokeRect(c, sq);
         for (int i = 1; i < 3; i++) {
@@ -132,7 +130,7 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
             CGContextMoveToPoint(c, sq.origin.x, sq.origin.y + i * 5); CGContextAddLineToPoint(c, sq.origin.x + 15, sq.origin.y + i * 5);
         }
         CGContextStrokePath(c);
-    } else {                                            // box with an up arrow
+    } else {
         CGContextMoveToPoint(c, m.x - 3, m.y - 3);
         CGContextAddLineToPoint(c, m.x - 7, m.y - 3);
         CGContextAddLineToPoint(c, m.x - 7, m.y + 8);

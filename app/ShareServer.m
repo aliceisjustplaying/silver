@@ -30,8 +30,7 @@ static void sendResponse(int fd, int status, const char *type, NSData *body, BOO
 
 enum { kPerPage = 60, kThumbPixels = 240 };
 
-// URL names for everything in the Camera Roll (photos and screenshots): "100APPLE-IMG_0032"
-// -> its path, newest first.
+// "100APPLE-IMG_0032" -> path, newest first.
 static NSArray *photoNames(NSDictionary **pathsOut) {
     NSMutableArray *names = [NSMutableArray array];
     NSMutableDictionary *paths = [NSMutableDictionary dictionary];
@@ -77,10 +76,8 @@ static NSData *galleryPage(int page) {
     return [html dataUsingEncoding:NSUTF8StringEncoding];
 }
 
-// Gallery thumbnails, 240 px, cached on disk in ~/Library/Caches/Silver/thumbs (about 10 KB
-// each) so each is only ever made once. Making one takes about 0.6 s, so one is made at a
-// time: a background thread works through the Camera Roll newest first while Share is open.
-// Until a photo's thumbnail exists, the page gets the system's 75x75 one (.MISC/<name>.THM).
+// 240 px thumbnails cached on disk, made one at a time (~0.6 s each) newest first while Share is
+// open. Until one exists the page gets the system's 75x75 .THM.
 static pthread_mutex_t gThumbLock = PTHREAD_MUTEX_INITIALIZER;
 
 static NSString *thumbCachePath(NSString *name, NSString *source) {
@@ -89,7 +86,7 @@ static NSString *thumbCachePath(NSString *name, NSString *source) {
         dir = [[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Caches/Silver/thumbs"] retain];
         [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
     }
-    // Keyed by size too, in case a file number is reused after a deletion.
+    // Size in the key: file numbers can be reused after a deletion.
     unsigned long long size = [[[NSFileManager defaultManager] attributesOfItemAtPath:source error:NULL] fileSize];
     return [dir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@-%llu.jpg", name, size]];
 }
@@ -123,7 +120,7 @@ static void *warmThumbnails(void *arg) {
     double t0 = NowMs();
     NSDictionary *paths;
     for (NSString *n in photoNames(&paths)) {
-        if (generation != gWarmGeneration) break;          // sharing stopped
+        if (generation != gWarmGeneration) break;
         NSAutoreleasePool *inner = [NSAutoreleasePool new];
         NSString *src = [paths objectForKey:n];
         if (![[NSFileManager defaultManager] fileExistsAtPath:thumbCachePath(n, src)]) { makeThumbnail(n, src); made++; }
@@ -138,7 +135,7 @@ static void *handle(void *arg) {
     int fd = (int)(intptr_t)arg;
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     char buf[2048]; size_t used = 0;
-    while (used < sizeof buf - 1) {                         // read the request line and headers
+    while (used < sizeof buf - 1) {
         ssize_t n = read(fd, buf + used, sizeof buf - 1 - used);
         if (n <= 0) break;
         used += n; buf[used] = 0;
@@ -177,13 +174,12 @@ static void *handle(void *arg) {
     return NULL;
 }
 
-// One thread per connection: Safari opens several at once, and a slow thumbnail must not
-// hold up the page or the other images.
+// One thread per connection, so a slow thumbnail doesn't hold up the rest.
 static void *serve(void *arg) {
     int lfd = (int)(intptr_t)arg;
     for (;;) {
         int fd = accept(lfd, NULL, NULL);
-        if (fd < 0) break;                                  // listening socket closed: stop
+        if (fd < 0) break;
         struct timeval tv = {10, 0};
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
@@ -230,7 +226,7 @@ static void *serve(void *arg) {
 
 - (void)stop {
     if (!running) return;
-    gWarmGeneration++;                                      // stops the warm-up thread
+    gWarmGeneration++;
     shutdown(listenFd, SHUT_RDWR);
     close(listenFd);
     running = NO;

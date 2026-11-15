@@ -71,7 +71,6 @@ enum { kSharePort = 8080 };
     grid = [[GridView alloc] initWithFrame:preview.frame];
     grid.hidden = ![[NSUserDefaults standardUserDefaults] boolForKey:@"grid"];
     [window addSubview:grid];
-    // Touch and hold the viewfinder: save debug information and restart the preview.
     [window addSubview:[[[HoldView alloc] initWithFrame:CGRectMake(0, 30, 320, 391) target:self action:@selector(debugHold)] autorelease]];
     flash = [[UIView alloc] initWithFrame:preview.frame];
     flash.backgroundColor = [UIColor whiteColor]; flash.alpha = 0; flash.userInteractionEnabled = NO;
@@ -101,7 +100,7 @@ enum { kSharePort = 8080 };
     UIView *bottom = [[[UIView alloc] initWithFrame:CGRectMake(0, 421, 320, 59)] autorelease];
     bottom.backgroundColor = [UIColor blackColor];
     [window addSubview:bottom];
-    thumb = [[ThumbButton alloc] initWithFrame:CGRectMake(20, 428, 33, 44)];   // 3:4 like the photos
+    thumb = [[ThumbButton alloc] initWithFrame:CGRectMake(20, 428, 33, 44)];
     [thumb addTarget:self action:@selector(openRoll) forControlEvents:UIControlEventTouchUpInside];
     [window addSubview:thumb];
     card = [[FilmCard alloc] initWithFrame:CGRectMake(272, 427, 32, 46)];
@@ -154,7 +153,6 @@ enum { kSharePort = 8080 };
         shareInfo.text = @"Join a Wi-Fi network (or another phone's Personal Hotspot) to share photos.";
     }
     [window addSubview:shareView];
-    [UIApplication sharedApplication].idleTimerDisabled = YES;
 }
 
 - (void)closeShare {
@@ -177,9 +175,7 @@ enum { kSharePort = 8080 };
     [roll release];
     roll = [[CameraRoll navigationControllerWithDoneTarget:self action:@selector(closeRoll)] retain];
     if (!roll) return;
-    // The Photos UI is laid out full screen under a translucent status bar (that's what it
-    // switches to on appearing). Show the status bar before the navigation bar lays out so it
-    // sits below it, as in the Photos app.
+    // The Photos UI wants a translucent status bar; show it before layout so the nav bar sits below.
     [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:NO];
     [[UIApplication sharedApplication] setStatusBarHidden:NO animated:NO];
     roll.view.frame = CGRectMake(0, 0, 320, 480);
@@ -232,9 +228,7 @@ enum { kSharePort = 8080 };
     [self showStatus:[reason uppercaseString]];
 }
 
-// Saves what's needed to debug a bad viewfinder into ~/Library/Logs/Silver/<time>/:
-// the screen, the raw camera frame, the displayed frame, camera and sensor state and the log.
-// Then restarts the preview, which rebuilds the capture surfaces.
+// Debug dump to ~/Library/Logs/Silver/<time>/, then a preview restart (rebuilds the capture surfaces).
 - (void)debugHold {
     NSDateFormatter *fmt = [[[NSDateFormatter alloc] init] autorelease];
     [fmt setDateFormat:@"yyyyMMdd-HHmmss"];
@@ -248,7 +242,7 @@ enum { kSharePort = 8080 };
     Log(@"debug hold: saving to %@, then restarting the preview", dir);
     [self showStatus:@"DEBUG SAVED · RESTARTING"];
     [self performSelector:@selector(showStatus:) withObject:nil afterDelay:2];
-    [self performSelector:@selector(restartPreview) withObject:nil afterDelay:0.5];   // after the dump frame
+    [self performSelector:@selector(restartPreview) withObject:nil afterDelay:0.5];
 }
 
 - (void)restartPreview { [camera pause]; [camera resume]; }

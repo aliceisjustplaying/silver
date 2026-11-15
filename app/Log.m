@@ -1,9 +1,14 @@
 #import "Log.h"
 #include <mach/mach_time.h>
+#include <sys/stat.h>
 
 void Log(NSString *fmt, ...) {
     static FILE *f;
-    if (!f) f = fopen("/tmp/silver.log", "a");
+    if (!f) {
+        struct stat st;   // start over past 1 MB
+        BOOL big = stat("/tmp/silver.log", &st) == 0 && st.st_size > (1 << 20);
+        f = fopen("/tmp/silver.log", big ? "w" : "a");
+    }
     va_list ap; va_start(ap, fmt);
     NSString *s = [[NSString alloc] initWithFormat:fmt arguments:ap];
     va_end(ap);

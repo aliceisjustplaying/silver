@@ -21,7 +21,7 @@ static UIViewController *photoBrowser(id album, int index) {
     return [vc autorelease];
 }
 
-// -albumView:selectedPhoto: for our PLAlbumViewController subclass: open the browser at that photo.
+// Added to a runtime subclass of PLAlbumViewController; only the picker's subclass handles taps.
 static void albumViewSelectedPhoto(UIViewController *self, SEL _cmd, id albumView, id photo) {
     id album = cameraAlbum();
     NSUInteger i = [[album performSelector:@selector(images)] indexOfObject:photo];
@@ -38,7 +38,6 @@ static void albumViewSelectedPhoto(UIViewController *self, SEL _cmd, id albumVie
     if (![self available]) return NO;
     double t0 = NowMs();
     // -[PLCameraAlbum addImage:withPreview:exifProperties:date:jpegData:notifyingTarget:selector:contextInfo:]
-    // (PhotoLibrary's own PLSaveImageToCameraRollWithJPEGData calls it with preview and date nil.)
     BOOL ok = ((BOOL (*)(id, SEL, id, id, id, id, CFDataRef, id, SEL, void *))objc_msgSend)(cameraAlbum(),
         @selector(addImage:withPreview:exifProperties:date:jpegData:notifyingTarget:selector:contextInfo:),
         image, preview, nil, [NSDate date], (CFDataRef)jpeg, nil, NULL, NULL);
@@ -59,7 +58,7 @@ static void albumViewSelectedPhoto(UIViewController *self, SEL _cmd, id albumVie
     for (NSString *folder in folders) {
         NSString *dir = [kDCIM stringByAppendingPathComponent:folder];
         for (NSString *f in [[fm contentsOfDirectoryAtPath:dir error:NULL] sortedArrayUsingSelector:@selector(compare:)])
-            if ([[f uppercaseString] hasSuffix:@".JPG"] || [[f uppercaseString] hasSuffix:@".PNG"])   // photos and screenshots
+            if ([[f uppercaseString] hasSuffix:@".JPG"] || [[f uppercaseString] hasSuffix:@".PNG"])
                 [paths addObject:[dir stringByAppendingPathComponent:f]];
     }
     return [[paths reverseObjectEnumerator] allObjects];

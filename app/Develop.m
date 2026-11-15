@@ -2,10 +2,6 @@
 #import "ImageIO.h"
 #import "Log.h"
 
-// Camera JPEGs are landscape (1600x1200); a quarter turn clockwise makes them upright
-// (checked by comparing a photo with the live view).
-
-// 3x3 box-filter downscale of an 8-bit gray image.
 static void shrink3(const uint8_t *src, int sw, int sh, int srb, uint8_t *dst, int drb) {
     for (int y = 0; y < sh / 3; y++) {
         const uint8_t *r0 = src + 3 * y * srb, *r1 = r0 + srb, *r2 = r1 + srb;
@@ -17,7 +13,7 @@ static void shrink3(const uint8_t *src, int sw, int sh, int srb, uint8_t *dst, i
 
 static void freePixels(void *info, const void *data, size_t size) { free((void *)data); }
 
-// Wraps malloc'd 8-bit gray pixels in a CGImage that takes ownership of them.
+// Takes ownership of pixels (CGBitmapContextCreateImage may share them copy-on-write).
 static CGImageRef grayImage(uint8_t *pixels, size_t w, size_t h, size_t rowBytes) {
     CGDataProviderRef dp = CGDataProviderCreateWithData(NULL, pixels, rowBytes * h, freePixels);
     CGColorSpaceRef gs = CGColorSpaceCreateDeviceGray();
@@ -29,8 +25,7 @@ static CGImageRef grayImage(uint8_t *pixels, size_t w, size_t h, size_t rowBytes
 // Same luma weights as the live view (gray.s): Y = (29 B + 150 G + 77 R) >> 8.
 static inline int luma(uint32_t p) { return (29 * (p & 0xff) + 150 * ((p >> 8) & 0xff) + 77 * ((p >> 16) & 0xff)) >> 8; }
 
-// BGRA src (sw x sh) -> 8-bit gray dst (sh x sw), rotated a quarter turn clockwise:
-// dst[y][x] = src[sh - 1 - x][y]. Tiled so both sides stay in cache.
+// The camera's landscape frame turned a quarter clockwise: dst[y][x] = src[sh-1-x][y], in tiles.
 static void lumaRotateCW(const uint32_t *src, int sw, int sh, uint8_t *dst, int dstRowBytes, const uint8_t table[256]) {
     enum { T = 16 };
     for (int y0 = 0; y0 < sw; y0 += T)
@@ -69,7 +64,6 @@ static void lumaRotateCW(const uint32_t *src, int sw, int sh, uint8_t *dst, int 
         CGContextRelease(dc);
         double t1 = NowMs();
 
-        // Match the photo's mean brightness to the live view's.
         uint32_t sum = 0, n = 0;
         for (size_t i = 0; i < sw * sh; i += 97, n++) sum += luma(rgb[i]);
         float photoMean = (float)sum / n;
@@ -91,7 +85,7 @@ static void lumaRotateCW(const uint32_t *src, int sw, int sh, uint8_t *dst, int 
         size_t sw3 = w / 3, sh3 = h / 3, srb = (sw3 + 15) & ~15;
         uint8_t *small = calloc(srb, sh3);
         shrink3(gray, w, h, rowBytes, small, srb);
-        CGImageRef screen = grayImage(small, sw3, sh3, srb);   // both images own their pixels
+        CGImageRef screen = grayImage(small, sw3, sh3, srb);
         NSData *jpg = JPEGData(out, 0.9f);
         double t4 = NowMs();
         if (jpg) result = [NSDictionary dictionaryWithObjectsAndKeys:jpg, @"jpeg",

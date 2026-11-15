@@ -1,4 +1,4 @@
 #import <Foundation/Foundation.h>
-// Logs to NSLog and /tmp/silver.log (read over SSH during development).
+// NSLog plus /tmp/silver.log.
 void Log(NSString *fmt, ...);
 double NowMs(void);

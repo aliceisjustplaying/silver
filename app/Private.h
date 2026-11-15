@@ -4,7 +4,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #include <mach/mach.h>
 
-typedef void *CameraDeviceRef, *CSBuf, *CSAccel;
+typedef void *CameraDeviceRef, *CSBuf;
 typedef void (*CameraClientCB)(CameraDeviceRef dev, int event, CSBuf surface, void *refcon);
 typedef void (*CameraPhotoCB)(CameraDeviceRef dev, int event, CFDataRef jpeg, CFDictionaryRef props,
                               CGImageRef thumb, void *refcon);
@@ -44,4 +44,4 @@ int SensorRead(CameraDeviceRef dev, uint32_t var, int bits, uint64_t *value);
 
 extern CGImageRef UIGetScreenImage(void);
 
-int PrivateLoad(void);   // 0 on success
+int PrivateLoad(void);
