@@ -34,6 +34,7 @@ enum { kSharePort = 8080 };
 
 @interface App (Private)
 - (void)developed:(NSString *)name;
+- (void)closeViewer;
 @end
 
 @implementation App
@@ -78,6 +79,7 @@ enum { kSharePort = 8080 };
     top.backgroundColor = [UIColor colorWithWhite:0 alpha:0.35f];
     [window addSubview:top];
     stockLabel = [[TextButton alloc] initWithFrame:CGRectMake(4, 0, 110, 30) title:@""];
+    [stockLabel setLeftAligned:YES];
     [stockLabel addTarget:self action:@selector(nextStock) forControlEvents:UIControlEventTouchUpInside];
     [top addSubview:stockLabel];
     gridButton = [[IconButton alloc] initWithFrame:CGRectMake(232, 0, 40, 30) kind:kIconGrid];

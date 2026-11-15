@@ -182,3 +182,19 @@ Verified from the Mac on the same Wi-Fi:
 Then the real test: from a modern iPhone on the apartment Wi-Fi, the gallery opened and showed both photos.
 
 Not done yet: sharing over another iPhone's Personal Hotspot.
+
+## Day 1: interface, round two
+
+Feedback on the first interface:
+- the moon shutter was too big and too busy for the chrome;
+- "SILVER" didn't fit on the tarot card;
+- GRID and SHARE should be symbols, not words;
+- after the photo viewer and Share, DONE returned to the photo instead of the camera.
+
+Changes (`app/Views.m`):
+- **Shutter:** now 48 px and fits inside the 59 px bottom bar. It's a thin gold ring around a flat crescent: one disk with an offset disk removed by even-odd fill. A first attempt drew an empty ring because `CGContextClip` consumes the current path, so the clip has to come before adding the shapes.
+- **Film card:** shows a symbol and a roman numeral instead of the name: I sun (SILVER), II new moon (COAL), III mist lines (MIST). The name stays in the top bar, now left-aligned.
+- **Top bar:** grid and share are line-drawn icons that turn gold when active.
+- **The bug:** opening Share now closes the viewer first.
+
+Every change was checked from screenshots the app takes of itself (`silver://screenshot`).

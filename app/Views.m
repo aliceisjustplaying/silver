@@ -36,11 +36,11 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
     CGContextStrokeEllipseInRect(c, CGRectInset(self.bounds, 1, 1));
     CGRect moon = CGRectInset(self.bounds, 6, 6);
     CGFloat d = moon.size.width;
+    CGContextSaveGState(c);
+    CGContextAddEllipseInRect(c, moon); CGContextClip(c);     // clipping consumes the path
     CGContextAddEllipseInRect(c, moon);
     CGContextAddEllipseInRect(c, CGRectOffset(moon, d * 0.30f, -d * 0.22f));
-    CGContextSaveGState(c);
-    CGContextAddEllipseInRect(c, moon); CGContextClip(c);
-    CGContextEOFillPath(c);
+    CGContextEOFillPath(c);                                    // disk minus offset disk = crescent
     CGContextRestoreGState(c);
 }
 @end
@@ -53,12 +53,13 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
 - (void)dealloc { [title release]; [super dealloc]; }
 - (void)setTitle:(NSString *)t { [title release]; title = [t copy]; [self setNeedsDisplay]; }
 - (void)setOn:(BOOL)o { on = o; [self setNeedsDisplay]; }
+- (void)setLeftAligned:(BOOL)l { left = l; [self setNeedsDisplay]; }
 - (void)setHighlighted:(BOOL)h { [super setHighlighted:h]; [self setNeedsDisplay]; }
 - (void)drawRect:(CGRect)r {
     UIFont *f = [UIFont systemFontOfSize:12];
     [(on || self.highlighted ? GoldColor() : [UIColor whiteColor]) set];
     CGFloat w = SpacedWidth(title, f, 3);
-    DrawSpaced(title, CGPointMake((self.bounds.size.width - w) / 2, (self.bounds.size.height - 15) / 2), f, 3);
+    DrawSpaced(title, CGPointMake(left ? 10 : (self.bounds.size.width - w) / 2, (self.bounds.size.height - 15) / 2), f, 3);
 }
 @end
 

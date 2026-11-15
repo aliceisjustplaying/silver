@@ -11,9 +11,10 @@ CGFloat SpacedWidth(NSString *text, UIFont *font, CGFloat spacing);
 
 // Letter-spaced text button.
 @interface TextButton : UIControl {
-    NSString *title; BOOL on;
+    NSString *title; BOOL on; BOOL left;
 }
 - (id)initWithFrame:(CGRect)frame title:(NSString *)title;
+- (void)setLeftAligned:(BOOL)l;
 - (void)setTitle:(NSString *)t;
 - (void)setOn:(BOOL)on;   // shown in gold
 @end
