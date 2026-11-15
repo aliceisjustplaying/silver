@@ -14,7 +14,7 @@
 
 ## Status
 
-- **Working on the phone:** live B&W preview at about 14.6 fps (10 ms of work per frame), three film stocks, grain on the photo, brightness matched to the viewfinder, thirds grid, last-photo viewer and the Wi-Fi share page.
+- **Working on the phone:** live B&W preview at about 14.6 fps (10 ms of work per frame), three film stocks (SILVER, ASH, HIGH CONTRAST), grain on the photo, brightness matched to the viewfinder, thirds grid, last-photo viewer with pinch and double-tap zoom and the Wi-Fi share page.
 - **Sharing:** tested from a modern iPhone on the same Wi-Fi network.
 - **Not tested yet:** sharing over a Personal Hotspot, and the preview frame rate in dim light.
 

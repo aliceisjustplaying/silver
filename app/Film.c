@@ -4,9 +4,9 @@
 #include <string.h>
 
 const FilmStock kFilmStocks[] = {
-    {"SILVER", 0.45f, 0.02f, 0.98f, 1.00f, 1.0f},
-    {"COAL",   0.95f, 0.00f, 1.00f, 1.10f, 1.6f},
-    {"MIST",   0.15f, 0.12f, 0.94f, 0.85f, 0.7f},
+    {"SILVER",        0.45f, 0.02f, 0.98f, 1.00f, 1.0f},   // default: medium contrast
+    {"ASH",           0.10f, 0.10f, 0.92f, 0.95f, 0.8f},   // faded: lifted blacks, softer whites
+    {"HIGH CONTRAST", 1.00f, 0.00f, 1.00f, 1.12f, 1.3f},
 };
 const int kFilmStockCount = sizeof kFilmStocks / sizeof kFilmStocks[0];
 

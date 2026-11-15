@@ -91,9 +91,9 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
             CGContextAddLineToPoint(c, m.x + cosf(a) * 9, m.y + sinf(a) * 9);
         }
         CGContextStrokePath(c);
-    } else if (index == 1) {                            // II: new moon (a full dark disk)
+    } else if (index == 2) {                            // III: new moon (a full dark disk)
         CGContextFillEllipseInRect(c, CGRectMake(m.x - 7, m.y - 7, 14, 14));
-    } else {                                            // III: mist (three wavy lines)
+    } else {                                            // II: ash haze (three wavy lines)
         for (int l = -1; l <= 1; l++) {
             CGFloat y = m.y + l * 5;
             CGContextMoveToPoint(c, m.x - 9, y);

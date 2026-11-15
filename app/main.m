@@ -8,6 +8,7 @@
 #import "Roll.h"
 #import "ShareServer.h"
 #import "Views.h"
+#import "Viewer.h"
 
 enum { kSharePort = 8080 };
 
@@ -23,7 +24,7 @@ enum { kSharePort = 8080 };
     IconButton *gridButton, *shareButton;
     TextButton *stockLabel;
     UIView *shareView; QRView *qr; UILabel *shareURL, *shareInfo;
-    UIImageView *viewer;
+    Viewer *viewer;
     Camera *camera;
     ShareServer *server;
     int stock;
@@ -78,7 +79,7 @@ enum { kSharePort = 8080 };
     UIView *top = [[[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 30)] autorelease];
     top.backgroundColor = [UIColor colorWithWhite:0 alpha:0.35f];
     [window addSubview:top];
-    stockLabel = [[TextButton alloc] initWithFrame:CGRectMake(4, 0, 110, 30) title:@""];
+    stockLabel = [[TextButton alloc] initWithFrame:CGRectMake(4, 0, 210, 30) title:@""];
     [stockLabel setLeftAligned:YES];
     [stockLabel addTarget:self action:@selector(nextStock) forControlEvents:UIControlEventTouchUpInside];
     [top addSubview:stockLabel];
@@ -99,7 +100,7 @@ enum { kSharePort = 8080 };
     UIView *bottom = [[[UIView alloc] initWithFrame:CGRectMake(0, 421, 320, 59)] autorelease];
     bottom.backgroundColor = [UIColor blackColor];
     [window addSubview:bottom];
-    thumb = [[ThumbButton alloc] initWithFrame:CGRectMake(18, 430, 42, 42)];
+    thumb = [[ThumbButton alloc] initWithFrame:CGRectMake(20, 428, 33, 44)];   // 3:4 like the photos
     [thumb addTarget:self action:@selector(openViewer) forControlEvents:UIControlEventTouchUpInside];
     [window addSubview:thumb];
     card = [[FilmCard alloc] initWithFrame:CGRectMake(272, 427, 32, 46)];
@@ -174,22 +175,12 @@ enum { kSharePort = 8080 };
 - (void)openViewer {
     NSArray *names = [Roll photoNames];
     if (![names count]) return;
-    if (!viewer) {
-        viewer = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 320, 480)];
-        viewer.backgroundColor = [UIColor blackColor];
-        viewer.contentMode = UIViewContentModeScaleAspectFit;
-        viewer.userInteractionEnabled = YES;
-        UIButton *close = [UIButton buttonWithType:UIButtonTypeCustom];
-        close.frame = viewer.bounds;
-        [close addTarget:self action:@selector(closeViewer) forControlEvents:UIControlEventTouchUpInside];
-        [viewer addSubview:close];
-    }
-    viewer.image = [UIImage imageWithContentsOfFile:[Roll pathForPhoto:[names objectAtIndex:0]]];
+    if (!viewer) viewer = [[Viewer alloc] initWithFrame:CGRectMake(0, 0, 320, 480) closeTarget:self action:@selector(closeViewer)];
+    [viewer showPhoto:[names objectAtIndex:0]];
     [window addSubview:viewer];
 }
 
 - (void)closeViewer {
-    viewer.image = nil;
     [viewer removeFromSuperview];
 }
 
@@ -234,7 +225,7 @@ enum { kSharePort = 8080 };
 }
 
 // Development hooks: silver://shutter, silver://share, silver://unshare, silver://grid,
-// silver://stock, silver://viewer, silver://screenshot.
+// silver://stock, silver://viewer, silver://zoom (double-tap the viewer's center), silver://screenshot.
 - (BOOL)application:(UIApplication *)app handleOpenURL:(NSURL *)url {
     NSString *cmd = [url host];
     Log(@"url command %@", cmd);
@@ -244,6 +235,7 @@ enum { kSharePort = 8080 };
     else if ([cmd isEqualToString:@"grid"]) [self toggleGrid];
     else if ([cmd isEqualToString:@"stock"]) [self nextStock];
     else if ([cmd isEqualToString:@"viewer"]) [self openViewer];
+    else if ([cmd isEqualToString:@"zoom"]) [viewer performSelector:@selector(doubleTapAt:) withObject:[NSValue valueWithCGPoint:CGPointMake(160, 213)]];
     else if ([cmd isEqualToString:@"screenshot"]) [self performSelector:@selector(screenshot) withObject:nil afterDelay:0.5];
     return YES;
 }

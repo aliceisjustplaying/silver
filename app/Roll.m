@@ -66,8 +66,9 @@ static CGContextRef grayContext(CGImageRef img, int turns, size_t outW, size_t o
 
 + (NSString *)directory {
     NSString *dir = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Silver"];
-    [[NSFileManager defaultManager] createDirectoryAtPath:[dir stringByAppendingPathComponent:@"thumbs"]
-                              withIntermediateDirectories:YES attributes:nil error:NULL];
+    for (NSString *sub in [NSArray arrayWithObjects:@"thumbs", @"screen", nil])
+        [[NSFileManager defaultManager] createDirectoryAtPath:[dir stringByAppendingPathComponent:sub]
+                                  withIntermediateDirectories:YES attributes:nil error:NULL];
     return dir;
 }
 
@@ -83,6 +84,11 @@ static CGContextRef grayContext(CGImageRef img, int turns, size_t outW, size_t o
     return [[[self directory] stringByAppendingPathComponent:name] stringByAppendingPathExtension:@"jpg"];
 }
 
++ (NSString *)pathForScreen:(NSString *)name {
+    return [[[[self directory] stringByAppendingPathComponent:@"screen"] stringByAppendingPathComponent:name]
+        stringByAppendingPathExtension:@"jpg"];
+}
+
 + (NSString *)pathForThumb:(NSString *)name {
     return [[[[self directory] stringByAppendingPathComponent:@"thumbs"] stringByAppendingPathComponent:name]
         stringByAppendingPathExtension:@"jpg"];
@@ -93,6 +99,27 @@ static CGContextRef grayContext(CGImageRef img, int turns, size_t outW, size_t o
         [NSValue valueWithPointer:stock], @"stock", [NSNumber numberWithFloat:previewMean], @"previewMean",
         target, @"target", NSStringFromSelector(action), @"action", nil];
     [NSThread detachNewThreadSelector:@selector(developJob:) toTarget:self withObject:job];
+}
+
+// 3x3 box-filter downscale of an 8-bit gray image.
+static void shrink3(const uint8_t *src, int sw, int sh, int srb, uint8_t *dst, int drb) {
+    for (int y = 0; y < sh / 3; y++) {
+        const uint8_t *r0 = src + 3 * y * srb, *r1 = r0 + srb, *r2 = r1 + srb;
+        uint8_t *d = dst + y * drb;
+        for (int x = 0; x < sw / 3; x++, r0 += 3, r1 += 3, r2 += 3)
+            d[x] = (r0[0] + r0[1] + r0[2] + r1[0] + r1[1] + r1[2] + r2[0] + r2[1] + r2[2] + 4) / 9;
+    }
+}
+
+static void freePixels(void *info, const void *data, size_t size) { free((void *)data); }
+
+// Wraps malloc'd 8-bit gray pixels in a CGImage that takes ownership of them.
+static CGImageRef grayImage(uint8_t *pixels, size_t w, size_t h, size_t rowBytes) {
+    CGDataProviderRef dp = CGDataProviderCreateWithData(NULL, pixels, rowBytes * h, freePixels);
+    CGColorSpaceRef gs = CGColorSpaceCreateDeviceGray();
+    CGImageRef img = CGImageCreate(w, h, 8, 8, rowBytes, gs, kCGImageAlphaNone, dp, NULL, false, kCGRenderingIntentDefault);
+    CGColorSpaceRelease(gs); CGDataProviderRelease(dp);
+    return img;
 }
 
 // Same luma weights as the live view (gray.s): Y = (29 B + 150 G + 77 R) >> 8.
@@ -147,28 +174,30 @@ static void lumaRotateCW(const uint32_t *src, int sw, int sh, uint8_t *dst, int 
         FilmDevelop(stock, gray, w, h, rowBytes, (uint32_t)(t0 * 1000));
         double t3 = NowMs();
 
-        CGColorSpaceRef gs = CGColorSpaceCreateDeviceGray();
-        CGContextRef ctx = CGBitmapContextCreate(gray, w, h, 8, rowBytes, gs, kCGImageAlphaNone);
-        CGColorSpaceRelease(gs);
-        CGImageRef out = CGBitmapContextCreateImage(ctx);
-        CGContextRelease(ctx); free(gray);
+        CGImageRef out = grayImage(gray, w, h, rowBytes);
+        size_t sw3 = w / 3, sh3 = h / 3, srb = (sw3 + 15) & ~15;
+        uint8_t *small = calloc(srb, sh3);
+        shrink3(gray, w, h, rowBytes, small, srb);
+        CGImageRef screen = grayImage(small, sw3, sh3, srb);   // both images own their pixels
         NSDateFormatter *fmt = [[[NSDateFormatter alloc] init] autorelease];
         [fmt setDateFormat:@"yyyyMMdd-HHmmss"];
         NSString *nm = [@"SLV-" stringByAppendingString:[fmt stringFromDate:[NSDate date]]];
         BOOL ok = writeJPEG(out, [self pathForPhoto:nm], 0.9f);
         double t4 = NowMs();
-        CGContextRef tc = grayContext(out, 0, kThumbWidth, kThumbHeight);
+        ok = ok && writeJPEG(screen, [self pathForScreen:nm], 0.85f);
+        CGContextRef tc = grayContext(screen, 0, kThumbWidth, kThumbHeight);
         if (tc) {
             CGImageRef thumb = CGBitmapContextCreateImage(tc);
             void *td = CGBitmapContextGetData(tc);
             ok = ok && writeJPEG(thumb, [self pathForThumb:nm], 0.8f);
             CGImageRelease(thumb); CGContextRelease(tc); free(td);
         }
+        CGImageRelease(screen);
         CGImageRelease(out);
         if (ok) name = nm;
         Log(@"developed %@ %zux%zu: preview mean %.1f, photo mean %.1f, gain %.2f; decode %.0f ms, luma+rotate %.0f ms, "
-            "grain %.0f ms, encode %.0f ms, total %.0f ms", nm, w, h, previewMean, photoMean, gain,
-            t1 - t0, t2 - t1, t3 - t2, t4 - t3, NowMs() - t0);
+            "grain %.0f ms, encode %.0f ms, screen+thumb %.0f ms, total %.0f ms", nm, w, h, previewMean, photoMean, gain,
+            t1 - t0, t2 - t1, t3 - t2, t4 - t3, NowMs() - t4, NowMs() - t0);
     } else {
         Log(@"develop failed: decode %p, ImageIO %d", src, loadImageIO());
     }

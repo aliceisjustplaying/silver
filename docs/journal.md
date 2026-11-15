@@ -198,3 +198,27 @@ Changes (`app/Views.m`):
 - **The bug:** opening Share now closes the viewer first.
 
 Every change was checked from screenshots the app takes of itself (`silver://screenshot`).
+
+## Day 1: viewer, zoom and the film stocks
+
+Feedback from using it in hand:
+- opening a photo took a second or more;
+- there was no pinch zoom;
+- the thumbnail was square while the photos are 3:4;
+- the stocks should be SILVER (default, medium contrast), ASH (faded, lower contrast) and HIGH CONTRAST.
+
+**Opening faster.** `UIImage` decodes lazily, so the old viewer decoded the 1200×1600 JPEG on its first draw. The develop step now also writes a 400×533 screen copy, made with a 3×3 box filter in C (screen copy plus thumbnail: 286 ms). The viewer decodes that copy up front: `viewer opened SLV-20261115-224425 in 127 ms`.
+
+**Zoom.** iPhone OS 3.1 has no gesture recognizers and no `scrollViewDidZoom:`. So the viewer is a `UIScrollView` subclass that re-centers its content in `layoutSubviews`, with an image view that counts taps itself: one tap closes, two taps zoom to 3×. When you zoom past 1×, the full 1200×1600 photo is decoded on a background thread (1093 ms) and swapped in. Pinch works through `UIScrollView`. For testing there's a `silver://zoom` command, which simulates a double tap in the middle of the photo.
+
+**Memory ownership.** The develop step wraps its pixel buffers in `CGImage`s through a data provider with a free callback. `CGBitmapContextCreateImage` may share memory copy-on-write, which isn't safe once the buffer has been freed.
+
+**Thumbnail:** now 33×44, the same 3:4 as the photos.
+
+**Stocks:**
+
+| # | Name | Character | Card symbol |
+| --- | --- | --- | --- |
+| I | SILVER | medium contrast | sun |
+| II | ASH | blacks lifted to 10%, whites capped at 92%, almost no S-curve, lighter grain | haze lines |
+| III | HIGH CONTRAST | full S-curve, slightly darker midtones (gamma 1.12), heavier grain | new moon |
