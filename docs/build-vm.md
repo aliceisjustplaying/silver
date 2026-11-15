@@ -37,7 +37,7 @@ One fix was needed in the VM:
 
 - **Home folder permissions.** Turning on File Sharing had made `/Users/alice` world-writable (`drwxrwxrwx+`). sshd's `StrictModes` then refused the key (`/var/log/secure.log`: `Authentication refused: bad ownership or modes for directory /Users/alice`). Fixed with `chmod 755 ~`.
 
-`sudo` over SSH needs a password (`/etc/sudoers` is unchanged). A `sudo` in the VM's Terminal leaves a timestamp that lets SSH sessions run `sudo` for a few minutes afterward.
+`alice` has passwordless sudo, so the host can run root commands over SSH (`scripts/vm 'sudo -n true'` succeeds).
 
 ## SMB
 
@@ -94,3 +94,10 @@ Failed install preflight: ... "The package “iPhoneSDKTools.pkg” is untrusted
 ```
 
 The certificate that signed the packages has expired, so the fix is to set the VM's clock back to 2011 for the install.
+
+```sh
+sudo systemsetup -setusingnetworktime off
+sudo date 0601120011   # June 1, 2011, 12:00
+# run the installer
+sudo systemsetup -setusingnetworktime on
+```
