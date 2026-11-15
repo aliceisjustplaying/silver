@@ -11,6 +11,7 @@
 - `scripts/vm`: SSH into the build VM.
 - `scripts/phone`: SSH into the phone.
 - `tools/re/`: readers for the iOS 3 shared cache and an ARM disassembler.
+- `tools/battery/`: prints the phone's power-source registry properties (`IOPMPowerSource`).
 
 ## Status
 
