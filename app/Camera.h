@@ -21,6 +21,7 @@
     int frames; double windowStart, workMs;
 @public
     float fps, msPerFrame;
+    float previewMean;   // mean luma (0..255) of the latest frame, before the tone curve
 }
 - (id)initWithLayer:(CALayer *)layer delegate:(id<CameraDelegate>)delegate;
 - (BOOL)start;

@@ -27,6 +27,7 @@ enum { kSharePort = 8080 };
     ShareServer *server;
     int stock;
     BOOL developing;
+    float shutterMean;
 }
 @end
 
@@ -191,6 +192,7 @@ enum { kSharePort = 8080 };
 - (void)shoot {
     if (developing || ![camera takePhoto]) return;
     developing = YES;
+    shutterMean = camera->previewMean;
     shutter.enabled = NO;
     flash.alpha = 0.9f;
     [UIView beginAnimations:nil context:NULL];
@@ -202,7 +204,7 @@ enum { kSharePort = 8080 };
 
 - (void)camera:(Camera *)c tookPhoto:(NSData *)jpeg {
     if (!jpeg) { [self developed:nil]; return; }
-    [Roll develop:jpeg stock:&kFilmStocks[stock] target:self action:@selector(developed:)];
+    [Roll develop:jpeg stock:&kFilmStocks[stock] previewMean:shutterMean target:self action:@selector(developed:)];
 }
 
 - (void)developed:(NSString *)name {

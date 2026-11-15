@@ -79,7 +79,14 @@ static void photoCallback(CameraDeviceRef dev, int event, CFDataRef jpeg, CFDict
     double t0 = NowMs();
     CSBuf d = disp[dispIndex]; dispIndex ^= 1;
     CoreSurfaceBufferLock(s, 3); CoreSurfaceBufferLock(d, 3);
-    gray_bgra(CoreSurfaceBufferGetBaseAddress(s), CoreSurfaceBufferGetBaseAddress(d), kWidth * kHeight, table);
+    const uint32_t *src = CoreSurfaceBufferGetBaseAddress(s);
+    gray_bgra(src, CoreSurfaceBufferGetBaseAddress(d), kWidth * kHeight, table);
+    uint32_t sum = 0, n = 0;                               // sampled raw luma, for matching photos
+    for (int i = 0; i < kWidth * kHeight; i += 61, n++) {
+        uint32_t p = src[i];
+        sum += (29 * (p & 0xff) + 150 * ((p >> 8) & 0xff) + 77 * ((p >> 16) & 0xff)) >> 8;
+    }
+    previewMean = (float)sum / n;
     CoreSurfaceBufferUnlock(d, 3); CoreSurfaceBufferUnlock(s, 3);
     [CATransaction begin]; [CATransaction setDisableActions:YES];
     layer.contents = (id)d;
