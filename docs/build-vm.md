@@ -101,3 +101,10 @@ sudo date 0601120011   # June 1, 2011, 12:00
 # run the installer
 sudo systemsetup -setusingnetworktime on
 ```
+
+Two more snags came up during the install:
+
+- **"Close iTunes".** The MobileDevice package's preinstall script (`AlertAll`) asks you to quit iTunes even when iTunes isn't open. The background `iTunesHelper` process counts as iTunes; killing it lets the install continue.
+- **Network time wouldn't come back on.** The VM had no `/etc/ntp.conf`, so `systemsetup -setusingnetworktime on` failed with `/etc/ntp.conf doesn't exist`. The fix was to create it containing `server time.apple.com`, set the date from the host and turn network time back on.
+
+Result: `xcodebuild -version` reports `Xcode 3.2.6` (`10M2518`). `xcodebuild -showsdks` lists `iphoneos4.3` and simulators for 3.2 through 4.3. The device toolchain includes `arm-apple-darwin10-gcc-4.2.1` and `llvm-gcc-4.2` in `/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin`.
