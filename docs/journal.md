@@ -322,3 +322,23 @@ The build is warning-free with `-Wall`.
 ## Day 1: sharing over a Personal Hotspot
 
 With the 2G joined to the iPhone 17 Pro's Personal Hotspot, sharing works: the modern phone, acting as the hotspot, can reach the 2G's web server. That means photos can come off the phone anywhere, without Wi-Fi or a cable.
+
+## Day 1: starting over with a clean jailbreak
+
+The phone arrived already jailbroken. To make it ours, and to check that the install steps work from scratch, we erased it and jailbroke it again with [Legacy iOS Kit](https://github.com/LukeZGD/Legacy-iOS-Kit).
+
+1. **Backup first.** All of `/private/var/{mobile,root,stash}` went to the Mac as a 117 MB tar over SSH. The Camera Roll's file list was checked against the phone: 43 of 43.
+2. **Running the tool.** Legacy iOS Kit ran from a tmux session on the Mac. It needed the system's BSD `date` ahead of the GNU one on `PATH`. The options were `--jailbreak --ipsw-hacktivate --disable-actrec`. The last one is needed because the old phone had been hacktivated, so there was no activation record to save, and the tool stops if it can't find one.
+3. **The restore.** The tool built a custom 3.1.3 image with Cydia, OpenSSH and hacktivation built in, put the phone into Recovery mode itself, and needed one manual DFU button sequence. The restore took about 7 minutes. The phone came back reporting `FactoryActivated`.
+4. **First connection.** SSH over USB went through `iproxy 2222:22`; `scripts/phone` gained an `IPHONE_PORT` setting for it. Then `scripts/deploy` put Silver back, and the camera started on the clean system.
+
+What we found afterward:
+- **Melder.** The tool also installs Melder (`com.koutsie.melder`), "Package manager and root terminal", built for iPhone OS 3 to 13, as an alternative to Cydia.
+- **Cydia's network errors were dead repos.** Cydia's first run re-adds its default repos, and three of them are gone:
+  - `apt.modmyi.com` no longer resolves;
+  - `cydia.zodttd.com` answers `308 Permanent Redirect`, presumably to HTTPS, which iPhone OS 3 can't speak;
+  - `repo666.ultrasn0w.com` answers 404 or 410.
+
+  saurik's repo, BigBoss and ios3.party all download fine over plain HTTP. The sources live in `CydiaSources` in `/var/mobile/Library/Preferences/com.saurik.Cydia.plist`, and `sources.list.d/cydia.list` is a symlink to a file Cydia regenerates from it. So the dead entries were removed from the plist itself.
+- **"No SIM Card Installed".** Without a SIM, SpringBoard keeps showing this alert. Every alert-hiding package on BigBoss needs iOS 5 or later, so `tools/nosimalert` is a 15-line MobileSubstrate tweak. It swaps `-[SBAlertItemsController activateAlertItem:]` and drops `SBSIMLockAlertItem`s; both names come from SpringBoard's strings. It's built in the VM, signed with `ldid` and dropped into `/Library/MobileSubstrate/DynamicLibraries/` with a SpringBoard filter plist.
+- **Home-screen wallpaper.** iPhone OS 3 only has lock-screen wallpaper, and even that is replaced by the battery picture while charging, which explained the earlier "black wallpaper" mystery. ios3.party's "iOS3 Wallpaper" package (`com.darlo770.wallpaper`) adds iOS 4-style home-screen wallpapers.
