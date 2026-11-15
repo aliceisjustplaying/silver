@@ -1,0 +1,7 @@
+#!/bin/sh
+# SSH into the Snow Leopard build VM (QEMU user-net forward 127.0.0.1:2223 -> guest :22).
+# Guest runs OpenSSH 5.2, which only knows ssh-rsa/ssh-dss.
+exec ssh -i ~/.ssh/snowleopard_vm -o IdentitiesOnly=yes -p 2223 \
+  -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa \
+  -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts_snowleopard_vm \
+  -o LogLevel=ERROR alice@127.0.0.1 "$@"
