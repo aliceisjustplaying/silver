@@ -18,11 +18,20 @@ CGFloat SpacedWidth(NSString *text, UIFont *font, CGFloat spacing);
 - (void)setOn:(BOOL)on;   // shown in gold
 @end
 
-// Film stock card: tap to change stock.
+// Film stock card: tap to change stock. Shows the stock's symbol and number, tarot style.
 @interface FilmCard : UIControl {
-    NSString *name;
+    int index;
 }
-- (void)setName:(NSString *)n;
+- (void)setIndex:(int)i;
+@end
+
+// Line-drawn icon button.
+typedef enum { kIconGrid, kIconShare } IconKind;
+@interface IconButton : UIControl {
+    IconKind kind; BOOL on;
+}
+- (id)initWithFrame:(CGRect)frame kind:(IconKind)kind;
+- (void)setOn:(BOOL)on;   // shown in gold
 @end
 
 // Last-photo thumbnail.

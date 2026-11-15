@@ -26,29 +26,21 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
 }
 - (void)setHighlighted:(BOOL)h { [super setHighlighted:h]; [self setNeedsDisplay]; }
 - (void)setEnabled:(BOOL)e { [super setEnabled:e]; [self setNeedsDisplay]; }
+// A thin gold ring around a flat gold crescent moon.
 - (void)drawRect:(CGRect)r {
     CGContextRef c = UIGraphicsGetCurrentContext();
-    CGRect disk = CGRectInset(self.bounds, 4, 4);
-    float dim = (self.highlighted || !self.enabled) ? 0.55f : 1.0f;
-    CGContextSetRGBStrokeColor(c, 0.90f * dim, 0.72f * dim, 0.23f * dim, 1);
+    float k = (self.highlighted || !self.enabled) ? 0.5f : 1.0f;
+    CGContextSetRGBStrokeColor(c, 0.90f * k, 0.72f * k, 0.23f * k, 1);
+    CGContextSetRGBFillColor(c, 0.90f * k, 0.72f * k, 0.23f * k, 1);
     CGContextSetLineWidth(c, 1.5f);
     CGContextStrokeEllipseInRect(c, CGRectInset(self.bounds, 1, 1));
-    CGContextSetRGBFillColor(c, 0.90f * dim, 0.72f * dim, 0.23f * dim, 1);
-    CGContextFillEllipseInRect(c, disk);
+    CGRect moon = CGRectInset(self.bounds, 6, 6);
+    CGFloat d = moon.size.width;
+    CGContextAddEllipseInRect(c, moon);
+    CGContextAddEllipseInRect(c, CGRectOffset(moon, d * 0.30f, -d * 0.22f));
     CGContextSaveGState(c);
-    CGContextAddEllipseInRect(c, disk); CGContextClip(c);
-    // craters
-    static const float craters[][3] = {{0.30f, 0.35f, 0.10f}, {0.55f, 0.25f, 0.07f}, {0.42f, 0.62f, 0.12f},
-                                       {0.68f, 0.55f, 0.06f}, {0.25f, 0.70f, 0.05f}};
-    CGContextSetRGBFillColor(c, 0.62f * dim, 0.48f * dim, 0.12f * dim, 0.6f);
-    for (int i = 0; i < 5; i++) {
-        float cx = disk.origin.x + craters[i][0] * disk.size.width, cy = disk.origin.y + craters[i][1] * disk.size.height;
-        float rr = craters[i][2] * disk.size.width;
-        CGContextFillEllipseInRect(c, CGRectMake(cx - rr, cy - rr, 2 * rr, 2 * rr));
-    }
-    // crescent shadow
-    CGContextSetRGBFillColor(c, 0, 0, 0, 0.55f);
-    CGContextFillEllipseInRect(c, CGRectOffset(disk, disk.size.width * 0.28f, -disk.size.height * 0.30f));
+    CGContextAddEllipseInRect(c, moon); CGContextClip(c);
+    CGContextEOFillPath(c);
     CGContextRestoreGState(c);
 }
 @end
@@ -75,33 +67,82 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
     if ((self = [super initWithFrame:f])) { self.opaque = NO; self.backgroundColor = [UIColor clearColor]; }
     return self;
 }
-- (void)dealloc { [name release]; [super dealloc]; }
-- (void)setName:(NSString *)n { [name release]; name = [n copy]; [self setNeedsDisplay]; }
+- (void)setIndex:(int)i { index = i; [self setNeedsDisplay]; }
 - (void)setHighlighted:(BOOL)h { [super setHighlighted:h]; [self setNeedsDisplay]; }
 - (void)drawRect:(CGRect)r {
     CGContextRef c = UIGraphicsGetCurrentContext();
-    float dim = self.highlighted ? 0.6f : 1.0f;
+    float k = self.highlighted ? 0.6f : 1.0f;
     CGRect card = CGRectInset(self.bounds, 1, 1);
-    CGContextSetRGBFillColor(c, 0.90f * dim, 0.72f * dim, 0.23f * dim, 1);
+    CGContextSetRGBFillColor(c, 0.90f * k, 0.72f * k, 0.23f * k, 1);
     CGContextFillRect(c, card);
-    CGContextSetRGBStrokeColor(c, 0.15f, 0.12f, 0.05f, 1);
+    const float ink[3] = {0.10f, 0.09f, 0.16f};
+    CGContextSetRGBStrokeColor(c, ink[0], ink[1], ink[2], 1);
+    CGContextSetRGBFillColor(c, ink[0], ink[1], ink[2], 1);
     CGContextSetLineWidth(c, 1);
     CGContextStrokeRect(c, CGRectInset(card, 2.5f, 2.5f));
-    // a small sun
-    CGPoint s = CGPointMake(card.origin.x + card.size.width / 2, card.origin.y + card.size.height * 0.38f);
-    CGContextSetRGBFillColor(c, 0.10f, 0.10f, 0.20f, 1);
-    CGContextFillEllipseInRect(c, CGRectMake(s.x - 4, s.y - 4, 8, 8));
-    CGContextSetRGBStrokeColor(c, 0.10f, 0.10f, 0.20f, 1);
-    for (int i = 0; i < 12; i++) {
-        float a = i * (float)M_PI / 6;
-        CGContextMoveToPoint(c, s.x + cosf(a) * 6, s.y + sinf(a) * 6);
-        CGContextAddLineToPoint(c, s.x + cosf(a) * 9, s.y + sinf(a) * 9);
+    CGPoint m = CGPointMake(CGRectGetMidX(card), card.origin.y + card.size.height * 0.40f);
+    CGContextSetLineWidth(c, 1.2f);
+    if (index == 0) {                                   // I: sun
+        CGContextFillEllipseInRect(c, CGRectMake(m.x - 4, m.y - 4, 8, 8));
+        for (int i = 0; i < 12; i++) {
+            float a = i * (float)M_PI / 6;
+            CGContextMoveToPoint(c, m.x + cosf(a) * 6, m.y + sinf(a) * 6);
+            CGContextAddLineToPoint(c, m.x + cosf(a) * 9, m.y + sinf(a) * 9);
+        }
+        CGContextStrokePath(c);
+    } else if (index == 1) {                            // II: new moon (a full dark disk)
+        CGContextFillEllipseInRect(c, CGRectMake(m.x - 7, m.y - 7, 14, 14));
+    } else {                                            // III: mist (three wavy lines)
+        for (int l = -1; l <= 1; l++) {
+            CGFloat y = m.y + l * 5;
+            CGContextMoveToPoint(c, m.x - 9, y);
+            CGContextAddCurveToPoint(c, m.x - 5, y - 3, m.x - 1, y + 3, m.x + 2, y);
+            CGContextAddCurveToPoint(c, m.x + 5, y - 3, m.x + 8, y + 1, m.x + 9, y);
+        }
+        CGContextStrokePath(c);
     }
-    CGContextStrokePath(c);
-    UIFont *f = [UIFont boldSystemFontOfSize:7];
-    [[UIColor colorWithRed:0.10f green:0.10f blue:0.20f alpha:1] set];
-    CGFloat w = SpacedWidth(name, f, 1);
-    DrawSpaced(name, CGPointMake(card.origin.x + (card.size.width - w) / 2, card.origin.y + card.size.height - 14), f, 1);
+    static NSString *const numerals[] = {@"I", @"II", @"III", @"IV", @"V"};
+    NSString *num = numerals[index % 5];
+    UIFont *f = [UIFont systemFontOfSize:8];
+    [[UIColor colorWithRed:ink[0] green:ink[1] blue:ink[2] alpha:1] set];
+    CGFloat w = SpacedWidth(num, f, 1);
+    DrawSpaced(num, CGPointMake(m.x - w / 2, card.origin.y + card.size.height - 15), f, 1);
+}
+@end
+
+@implementation IconButton
+- (id)initWithFrame:(CGRect)f kind:(IconKind)k {
+    if ((self = [super initWithFrame:f])) { kind = k; self.opaque = NO; self.backgroundColor = [UIColor clearColor]; }
+    return self;
+}
+- (void)setOn:(BOOL)o { on = o; [self setNeedsDisplay]; }
+- (void)setHighlighted:(BOOL)h { [super setHighlighted:h]; [self setNeedsDisplay]; }
+- (void)drawRect:(CGRect)r {
+    CGContextRef c = UIGraphicsGetCurrentContext();
+    if (on || self.highlighted) CGContextSetRGBStrokeColor(c, 0.90f, 0.72f, 0.23f, 1);
+    else CGContextSetRGBStrokeColor(c, 1, 1, 1, 1);
+    CGContextSetLineWidth(c, 1.2f);
+    CGPoint m = CGPointMake(floorf(CGRectGetMidX(self.bounds)) + 0.5f, floorf(CGRectGetMidY(self.bounds)) + 0.5f);
+    if (kind == kIconGrid) {                            // 3x3 grid in a 15 px square
+        CGRect sq = CGRectMake(m.x - 7.5f, m.y - 7.5f, 15, 15);
+        CGContextStrokeRect(c, sq);
+        for (int i = 1; i < 3; i++) {
+            CGContextMoveToPoint(c, sq.origin.x + i * 5, sq.origin.y); CGContextAddLineToPoint(c, sq.origin.x + i * 5, sq.origin.y + 15);
+            CGContextMoveToPoint(c, sq.origin.x, sq.origin.y + i * 5); CGContextAddLineToPoint(c, sq.origin.x + 15, sq.origin.y + i * 5);
+        }
+        CGContextStrokePath(c);
+    } else {                                            // box with an up arrow
+        CGContextMoveToPoint(c, m.x - 3, m.y - 3);
+        CGContextAddLineToPoint(c, m.x - 7, m.y - 3);
+        CGContextAddLineToPoint(c, m.x - 7, m.y + 8);
+        CGContextAddLineToPoint(c, m.x + 7, m.y + 8);
+        CGContextAddLineToPoint(c, m.x + 7, m.y - 3);
+        CGContextAddLineToPoint(c, m.x + 3, m.y - 3);
+        CGContextMoveToPoint(c, m.x, m.y + 3); CGContextAddLineToPoint(c, m.x, m.y - 9);
+        CGContextMoveToPoint(c, m.x - 3.5f, m.y - 5.5f); CGContextAddLineToPoint(c, m.x, m.y - 9);
+        CGContextAddLineToPoint(c, m.x + 3.5f, m.y - 5.5f);
+        CGContextStrokePath(c);
+    }
 }
 @end
 

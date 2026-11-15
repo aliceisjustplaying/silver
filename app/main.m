@@ -20,7 +20,8 @@ enum { kSharePort = 8080 };
     ShutterButton *shutter;
     ThumbButton *thumb;
     FilmCard *card;
-    TextButton *gridButton, *shareButton, *stockLabel;
+    IconButton *gridButton, *shareButton;
+    TextButton *stockLabel;
     UIView *shareView; QRView *qr; UILabel *shareURL, *shareInfo;
     UIImageView *viewer;
     Camera *camera;
@@ -48,7 +49,7 @@ enum { kSharePort = 8080 };
     FilmPreviewTable(f, table);
     [camera setPreviewTable:table];
     NSString *name = [NSString stringWithUTF8String:f->name];
-    [card setName:name];
+    [card setIndex:stock];
     [stockLabel setTitle:name];
     [[NSUserDefaults standardUserDefaults] setInteger:stock forKey:@"stock"];
 }
@@ -79,11 +80,11 @@ enum { kSharePort = 8080 };
     stockLabel = [[TextButton alloc] initWithFrame:CGRectMake(4, 0, 110, 30) title:@""];
     [stockLabel addTarget:self action:@selector(nextStock) forControlEvents:UIControlEventTouchUpInside];
     [top addSubview:stockLabel];
-    gridButton = [[TextButton alloc] initWithFrame:CGRectMake(160, 0, 70, 30) title:@"GRID"];
+    gridButton = [[IconButton alloc] initWithFrame:CGRectMake(232, 0, 40, 30) kind:kIconGrid];
     [gridButton setOn:!grid.hidden];
     [gridButton addTarget:self action:@selector(toggleGrid) forControlEvents:UIControlEventTouchUpInside];
     [top addSubview:gridButton];
-    shareButton = [[TextButton alloc] initWithFrame:CGRectMake(236, 0, 80, 30) title:@"SHARE"];
+    shareButton = [[IconButton alloc] initWithFrame:CGRectMake(276, 0, 40, 30) kind:kIconShare];
     [shareButton addTarget:self action:@selector(openShare) forControlEvents:UIControlEventTouchUpInside];
     [top addSubview:shareButton];
 
@@ -99,10 +100,10 @@ enum { kSharePort = 8080 };
     thumb = [[ThumbButton alloc] initWithFrame:CGRectMake(18, 430, 42, 42)];
     [thumb addTarget:self action:@selector(openViewer) forControlEvents:UIControlEventTouchUpInside];
     [window addSubview:thumb];
-    card = [[FilmCard alloc] initWithFrame:CGRectMake(268, 427, 36, 48)];
+    card = [[FilmCard alloc] initWithFrame:CGRectMake(272, 427, 32, 46)];
     [card addTarget:self action:@selector(nextStock) forControlEvents:UIControlEventTouchUpInside];
     [window addSubview:card];
-    shutter = [[ShutterButton alloc] initWithFrame:CGRectMake(127, 414, 66, 66)];
+    shutter = [[ShutterButton alloc] initWithFrame:CGRectMake(136, 427, 48, 48)];
     [shutter addTarget:self action:@selector(shoot) forControlEvents:UIControlEventTouchUpInside];
     [window addSubview:shutter];
 
@@ -133,6 +134,7 @@ enum { kSharePort = 8080 };
 }
 
 - (void)openShare {
+    [self closeViewer];
     if (!shareView) [self buildShareView];
     NSString *ip = [ShareServer wifiAddress];
     NSUInteger count = [[Roll photoNames] count];
