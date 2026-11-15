@@ -146,7 +146,7 @@ enum { kSharePort = 8080 };
         NSString *url = [NSString stringWithFormat:@"http://%@:%d/", ip, kSharePort];
         [qr setText:url]; qr.hidden = NO;
         shareURL.text = [url substringWithRange:NSMakeRange(7, [url length] - 8)];
-        shareInfo.text = [NSString stringWithFormat:@"%lu photo%@. Scan with another phone's camera. "
+        shareInfo.text = [NSString stringWithFormat:@"%lu item%@ in the Camera Roll. Scan with another phone's camera. "
                           "Both phones need the same Wi-Fi, or join that phone's Personal Hotspot.",
                           (unsigned long)count, count == 1 ? @"" : @"s"];
     } else {

@@ -2,8 +2,8 @@
 
 // A small HTTP server for getting the Camera Roll onto other phones over Wi-Fi.
 // Runs only while the Share screen is open. Pages:
-//   /            gallery (newest first)
-//   /p/<name>.jpg  full photo     /t/<name>.jpg  240 px thumbnail
+//   /, /?page=N   gallery, 60 per page, newest first
+//   /p/<name>     full photo or screenshot     /t/<name>.jpg  240 px thumbnail
 // where <name> is like 100APPLE-IMG_0032.
 @interface ShareServer : NSObject {
     int listenFd;

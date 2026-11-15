@@ -59,7 +59,8 @@ static void albumViewSelectedPhoto(UIViewController *self, SEL _cmd, id albumVie
     for (NSString *folder in folders) {
         NSString *dir = [kDCIM stringByAppendingPathComponent:folder];
         for (NSString *f in [[fm contentsOfDirectoryAtPath:dir error:NULL] sortedArrayUsingSelector:@selector(compare:)])
-            if ([[f uppercaseString] hasSuffix:@".JPG"]) [paths addObject:[dir stringByAppendingPathComponent:f]];
+            if ([[f uppercaseString] hasSuffix:@".JPG"] || [[f uppercaseString] hasSuffix:@".PNG"])   // photos and screenshots
+                [paths addObject:[dir stringByAppendingPathComponent:f]];
     }
     return [[paths reverseObjectEnumerator] allObjects];
 }

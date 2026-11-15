@@ -287,3 +287,23 @@ Still to check with a lit scene: whether the newest photo now appears immediatel
 | SILVER | 5 | 26 | 55 | 90 | 127 | 164 | 199 | 228 | 249 |
 
 Everything from black to a quarter gray now lands on a milky 59–66, while the midtones are about as steep as SILVER's.
+
+## Day 1: a share page that scales
+
+From real use on an iPhone 17 Pro:
+- a screenshot taken on the 2G didn't appear on the share page;
+- with 40-odd photos, Safari gave up partway through loading the gallery.
+
+**Screenshots.** iPhone OS 3 saves screenshots into the Camera Roll as PNG (`DCIM/100APPLE/IMG_0040.PNG`), and the server only listed `.JPG`. It now lists both and serves PNGs as `image/png`.
+
+**Why Safari gave up.** The server handled one connection at a time. Every thumbnail not yet made took about 0.6 s, so Safari's parallel requests queued behind each other until they timed out. Now:
+- **One thread per connection.** A slow thumbnail no longer holds up the page or other images.
+- **Thumbnails are cached on disk** in `~/Library/Caches/Silver/thumbs/` (240 px JPEG, about 10 KB each), keyed by name and file size, so each is made only once ever. The rule is still one copy of every photo; these are a cache.
+- **One thumbnail at a time.** A background thread works through the Camera Roll newest first while Share is open, behind a mutex. Memory on a 128 MB phone stays flat, and no two thumbnails compete for the CPU.
+- **Instant placeholders.** Until a photo's thumbnail exists, the page gets the system's own 75×75 thumbnail (`.MISC/IMG_xxxx.THM`) with `Cache-Control: no-cache`, so it upgrades on the next visit. Finished thumbnails and full photos are sent with `max-age=86400`.
+- **Pages of 60**, with Newer and Older links, so the page size doesn't grow with the Camera Roll.
+
+Measured with 43 items in the Camera Roll:
+- making every thumbnail the first time took 26.4 s in the background;
+- after that, the gallery page loads in 0.13 s;
+- fetching all 43 thumbnails six at a time, as Safari does, took 3.3 s.

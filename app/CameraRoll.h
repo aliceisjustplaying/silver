@@ -10,7 +10,7 @@
 + (BOOL)saveJPEG:(NSData *)jpeg image:(UIImage *)image preview:(UIImage *)preview;
 // The image shown in the Camera app's "image well" (last photo taken), or nil.
 + (UIImage *)wellImage;
-// Paths of the Camera Roll's JPEGs, newest first.
+// Paths of the Camera Roll's photos (JPG) and screenshots (PNG), newest first.
 + (NSArray *)photoPaths;
 
 // A navigation controller showing the Camera Roll grid (PLAlbumViewController); tapping a
