@@ -16,6 +16,13 @@ iPhone OS 3 has no public way to read live camera frames; that came with iOS 4. 
 - To build: Mac OS X 10.6 with Xcode 3.2.6 and the iOS 4.3 SDK. A virtual machine works; [docs/build-vm.md](docs/build-vm.md) describes the setup used here.
 - `ldid` to fake-sign the binary (on the build machine or any Mac). The phone's own `codesign_allocate` rejects Xcode 3.2.6 binaries.
 
+## Install the prebuilt app
+
+Download `Silver-<version>.zip` from [Releases](../../releases). It's already fake-signed with `ldid`. Unzip it, then:
+
+1. Copy `Silver.app` to `/Applications/` on the phone (over SSH, or with a file manager like iFile).
+2. Run `su mobile -c uicache` on the phone, or reboot, so the icon appears.
+
 ## Build and install
 
 Build `app/` with `make` on the 10.6 machine. That produces `Silver.app`. Then:
