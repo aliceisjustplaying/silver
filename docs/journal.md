@@ -154,6 +154,19 @@ The grain is a 256×256 tile of blurred, roughly Gaussian noise, sampled at two 
 
 The first measured develop took 6.4 s: 3.5 s to decode and rotate, 0.4 s for grain and 1.5 s to encode.
 
+### Matching the photo to the viewfinder
+
+The first photos seemed darker than the viewfinder. Measured against a screenshot taken a moment later, the gap was small: the 10th, 50th and 90th brightness percentiles were 33, 100 and 136 on screen and 30, 96 and 137 in the photo. That's 3–4 levels darker in the shadows and midtones.
+
+The likely cause was the gray conversion. The viewfinder uses our own luma weights (29·B + 150·G + 77·R) >> 8, while the photo let Core Graphics convert RGB → DeviceGray, which uses its own color conversion. The develop step now:
+- decodes into BGRA;
+- converts with the same weights as `gray.s`, rotating in 16×16 tiles in the same pass;
+- scales brightness so the photo's mean matches the viewfinder's mean when the shutter was pressed (gain clamped to 0.5–3×).
+
+On the next photo the camera's own exposure already matched: preview mean 117.0, photo mean 117.1, gain 1.00. Percentiles were 55, 121 and 157 on screen and 57, 125 and 166 in the photo, so the remaining gap is mostly grain widening the highlights.
+
+The new pipeline is also faster. Develop time went from 6.4 s to 5.1 s: decode 2.0 s, luma and rotate 0.6 s, grain 0.4 s, encode 1.5 s.
+
 ### Getting photos off the phone
 
 - **AirDrop** needs iOS 7 or later.
