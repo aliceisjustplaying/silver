@@ -43,11 +43,16 @@ static BOOL writeJPEG(CGImageRef img, NSString *path, float quality) {
 }
 
 // Draws img rotated by quarter turns into a new 8-bit gray context of the rotated size.
+// iPhone OS 3 can't allocate bitmap context memory itself (NULL data needs iOS 4), so the
+// caller frees CGBitmapContextGetData(ctx) after releasing the context.
 static CGContextRef grayContext(CGImageRef img, int turns, size_t outW, size_t outH) {
+    size_t rowBytes = (outW + 15) & ~15;
+    void *data = calloc(rowBytes, outH);
+    if (!data) return NULL;
     CGColorSpaceRef gray = CGColorSpaceCreateDeviceGray();
-    CGContextRef ctx = CGBitmapContextCreate(NULL, outW, outH, 8, (outW + 15) & ~15, gray, kCGImageAlphaNone);
+    CGContextRef ctx = CGBitmapContextCreate(data, outW, outH, 8, rowBytes, gray, kCGImageAlphaNone);
     CGColorSpaceRelease(gray);
-    if (!ctx) return NULL;
+    if (!ctx) { free(data); return NULL; }
     CGContextSetInterpolationQuality(ctx, kCGInterpolationDefault);
     CGFloat w = outW, h = outH;
     CGContextTranslateCTM(ctx, w / 2, h / 2);
@@ -107,8 +112,9 @@ static CGContextRef grayContext(CGImageRef img, int turns, size_t outW, size_t o
         if (ctx) {
             FilmDevelop(stock, CGBitmapContextGetData(ctx), w, h, CGBitmapContextGetBytesPerRow(ctx), (uint32_t)(t0 * 1000));
             double t2 = NowMs();
-            CGImageRef out = CGBitmapContextCreateImage(ctx);
-            CGContextRelease(ctx);
+            CGImageRef out = CGBitmapContextCreateImage(ctx);   // copies the pixels
+            void *data = CGBitmapContextGetData(ctx);
+            CGContextRelease(ctx); free(data);
             NSDateFormatter *fmt = [[[NSDateFormatter alloc] init] autorelease];
             [fmt setDateFormat:@"yyyyMMdd-HHmmss"];
             NSString *n = [@"SLV-" stringByAppendingString:[fmt stringFromDate:[NSDate date]]];
@@ -118,7 +124,8 @@ static CGContextRef grayContext(CGImageRef img, int turns, size_t outW, size_t o
             if (tc) {
                 CGImageRef thumb = CGBitmapContextCreateImage(tc);
                 ok = ok && writeJPEG(thumb, [self pathForThumb:n], 0.8f);
-                CGImageRelease(thumb); CGContextRelease(tc);
+                void *td = CGBitmapContextGetData(tc);
+                CGImageRelease(thumb); CGContextRelease(tc); free(td);
             }
             CGImageRelease(out);
             if (ok) name = n;
