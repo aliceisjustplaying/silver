@@ -14,6 +14,10 @@ CSBuf (*CoreSurfaceBufferCreate)(CFDictionaryRef);
 int (*CoreSurfaceBufferLock)(CSBuf, unsigned);
 int (*CoreSurfaceBufferUnlock)(CSBuf, unsigned);
 void *(*CoreSurfaceBufferGetBaseAddress)(CSBuf);
+size_t (*CoreSurfaceBufferGetWidth)(CSBuf);
+size_t (*CoreSurfaceBufferGetHeight)(CSBuf);
+size_t (*CoreSurfaceBufferGetBytesPerRow)(CSBuf);
+uint32_t (*CoreSurfaceBufferGetPixelFormatType)(CSBuf);
 CFStringRef kCoreSurfaceBufferWidth, kCoreSurfaceBufferHeight, kCoreSurfaceBufferPixelFormat,
     kCoreSurfaceBufferBytesPerElement, kCoreSurfaceBufferBytesPerRow, kCoreSurfaceBufferAllocSize,
     kCoreSurfaceBufferMemoryRegion;
@@ -49,6 +53,10 @@ int PrivateLoad(void) {
     SYM(cs, CoreSurfaceBufferLock, "CoreSurfaceBufferLock");
     SYM(cs, CoreSurfaceBufferUnlock, "CoreSurfaceBufferUnlock");
     SYM(cs, CoreSurfaceBufferGetBaseAddress, "CoreSurfaceBufferGetBaseAddress");
+    SYM(cs, CoreSurfaceBufferGetWidth, "CoreSurfaceBufferGetWidth");
+    SYM(cs, CoreSurfaceBufferGetHeight, "CoreSurfaceBufferGetHeight");
+    SYM(cs, CoreSurfaceBufferGetBytesPerRow, "CoreSurfaceBufferGetBytesPerRow");
+    SYM(cs, CoreSurfaceBufferGetPixelFormatType, "CoreSurfaceBufferGetPixelFormatType");
     KEY(cs, kCoreSurfaceBufferWidth, "kCoreSurfaceBufferWidth");
     KEY(cs, kCoreSurfaceBufferHeight, "kCoreSurfaceBufferHeight");
     KEY(cs, kCoreSurfaceBufferPixelFormat, "kCoreSurfaceBufferPixelFormat");

@@ -30,6 +30,10 @@ extern CSBuf (*CoreSurfaceBufferCreate)(CFDictionaryRef);
 extern int (*CoreSurfaceBufferLock)(CSBuf, unsigned);
 extern int (*CoreSurfaceBufferUnlock)(CSBuf, unsigned);
 extern void *(*CoreSurfaceBufferGetBaseAddress)(CSBuf);
+extern size_t (*CoreSurfaceBufferGetWidth)(CSBuf);
+extern size_t (*CoreSurfaceBufferGetHeight)(CSBuf);
+extern size_t (*CoreSurfaceBufferGetBytesPerRow)(CSBuf);
+extern uint32_t (*CoreSurfaceBufferGetPixelFormatType)(CSBuf);
 extern CFStringRef kCoreSurfaceBufferWidth, kCoreSurfaceBufferHeight, kCoreSurfaceBufferPixelFormat,
     kCoreSurfaceBufferBytesPerElement, kCoreSurfaceBufferBytesPerRow, kCoreSurfaceBufferAllocSize,
     kCoreSurfaceBufferMemoryRegion;

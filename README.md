@@ -18,6 +18,10 @@
 - **Sharing:** tested from a modern iPhone on the same Wi-Fi network.
 - **Not tested yet:** sharing over a Personal Hotspot, and the preview frame rate in dim light.
 
+## Debugging on the phone
+
+Touch and hold the viewfinder for 1.5 s. Silver saves the screen, the raw camera frame, the displayed frame, camera and sensor state and the log to `~/Library/Logs/Silver/<time>/` on the phone, then restarts the preview. The running log is `/tmp/silver.log`.
+
 ## Docs
 
 - [docs/journal.md](docs/journal.md): the story so far, with dead ends and measurements.

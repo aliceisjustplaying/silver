@@ -8,6 +8,7 @@ typedef struct {
     float white;      // output level for input white
     float gamma;      // midtone gamma, < 1 brightens
     float grain;      // grain strength, 1 = normal
+    float fade;       // faded-film floor: shadows flatten into this gray (0 = none)
 } FilmStock;
 
 extern const FilmStock kFilmStocks[];

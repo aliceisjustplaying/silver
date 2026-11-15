@@ -268,3 +268,22 @@ Silver now calls the method directly with its finished JPEG, the decoded full im
 **Status bar.** `PLAlbumViewController` switches to a translucent status bar and lays out full screen under it. Silver now shows the status bar (`UIStatusBarStyleBlackTranslucent`) *before* the navigation controller lays out, so the bar sits below it as in the Photos app, and hides it again on Done.
 
 Still to check with a lit scene: whether the newest photo now appears immediately in the browser. Every test shot in this round was taken face-down (preview mean 3.9).
+
+## Day 1: a garbled viewfinder, softer grain and a real faded look
+
+**The viewfinder glitch.** After taking a photo and browsing it in the Camera Roll, the viewfinder looked garbled. The screenshot showed the scene in bands, as if parts of it repeated. The log showed frames still arriving at 14.6 fps the whole time, and restarting the app fixed it. I couldn't reproduce it from the test hooks (shoot, open the roll, open the newest photo, close). So the changes aim at prevention, recovery and evidence:
+- **Prevention:** the preview now stops while the Camera Roll is open (`CameraDeviceStopPreview`) and restarts when it closes. `CameraDeviceStartPreview` returns `0xe00002d5` until the in-flight captures have drained, so the resume retries every 100 ms. Restarting rebuilds the six capture surfaces. Nothing else is competing for the camera hardware while Apple's Photos code runs.
+- **Evidence:** every camera event now logs the sensor state, using the MT9D112 variables `seq.mode`, `seq.state`, `ae.maxIndex`, `ae.index`, the preview size and window values, frame lines and line length. It also logs Camera.framework's state and in-flight capture count. Any frame whose surface isn't 304×400 with 1216 bytes per row is logged as an anomaly.
+- **Recovery and a user-triggered dump:** touch and hold the viewfinder for 1.5 s. Silver saves the screen, the raw camera frame, the displayed frame, `camera.txt` (frame surface properties, the CameraDevice's six surfaces and free list, sensor state, fps and anomaly count) and a copy of the log into `~/Library/Logs/Silver/<time>/`. Then it restarts the preview and shows "DEBUG SAVED · RESTARTING". `silver://debug` does the same remotely.
+
+**Grain** was too strong for an already-noisy 2 MP camera. The amplitude scale went from 0.5 to 0.28, so midtone grain in SILVER drops from about 12.6 to about 7 levels of standard deviation.
+
+**ASH, take two.** "Lower contrast" isn't "faded". Faded prints have a milky veil over the shadows, while the midtones keep their contrast. The tone curve gained a `fade` parameter: a soft maximum with a gray floor, `0.5·(x + F + √((x − F)² + 0.12²))`, normalized so white stays white before the white point is applied. On a 9-point ramp (outputs 0–255):
+
+| Input | 0 | 32 | 64 | 96 | 128 | 160 | 192 | 224 | 255 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| old ASH | 25 | 52 | 79 | 106 | 133 | 160 | 186 | 211 | 234 |
+| new ASH | 59 | 61 | 66 | 86 | 121 | 157 | 191 | 219 | 237 |
+| SILVER | 5 | 26 | 55 | 90 | 127 | 164 | 199 | 228 | 249 |
+
+Everything from black to a quarter gray now lands on a milky 59–66, while the midtones are about as steep as SILVER's.

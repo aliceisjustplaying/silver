@@ -4,9 +4,9 @@
 #include <string.h>
 
 const FilmStock kFilmStocks[] = {
-    {"SILVER",        0.45f, 0.02f, 0.98f, 1.00f, 1.0f},   // default: medium contrast
-    {"ASH",           0.10f, 0.10f, 0.92f, 0.95f, 0.8f},   // faded: lifted blacks, softer whites
-    {"HIGH CONTRAST", 1.00f, 0.00f, 1.00f, 1.12f, 1.3f},
+    {"SILVER",        0.45f, 0.02f, 0.98f, 1.00f, 1.0f, 0.00f},   // default: medium contrast
+    {"ASH",           0.60f, 0.00f, 0.93f, 1.00f, 0.8f, 0.24f},   // faded: milky shadows, contrast kept in the midtones
+    {"HIGH CONTRAST", 1.00f, 0.00f, 1.00f, 1.12f, 1.3f, 0.00f},
 };
 const int kFilmStockCount = sizeof kFilmStocks / sizeof kFilmStocks[0];
 
@@ -16,6 +16,14 @@ void FilmToneCurve(const FilmStock *f, uint8_t curve[256]) {
         x = powf(x, f->gamma);
         float s = x * x * (3.0f - 2.0f * x);            // smoothstep S-curve
         x = x + (s - x) * f->contrast;
+        if (f->fade > 0) {
+            // Faded film: a soft maximum with a gray floor. Shadows below the floor flatten into a
+            // milky gray (like a veil over the print) while midtones keep their contrast.
+            const float soft = 0.12f;
+            float floorv = f->fade;
+            float top = 0.5f * (1 + floorv + sqrtf((1 - floorv) * (1 - floorv) + soft * soft));
+            x = 0.5f * (x + floorv + sqrtf((x - floorv) * (x - floorv) + soft * soft)) / top;
+        }
         x = f->black + x * (f->white - f->black);
         int v = (int)lrintf(x * 255.0f);
         curve[i] = v < 0 ? 0 : v > 255 ? 255 : v;
@@ -66,7 +74,7 @@ void FilmDevelop(const FilmStock *f, uint8_t *pixels, int width, int height, int
     for (int i = 0; i < 256; i++) {
         float t = i / 255.0f;
         float a = f->grain * (0.35f + 0.65f * 4.0f * t * (1.0f - t));   // strongest in midtones
-        amp[i] = (int16_t)lrintf(a * 0.5f * 128.0f);
+        amp[i] = (int16_t)lrintf(a * 0.28f * 128.0f);   // 0.5 was too strong for this camera
     }
     uint32_t s = seed | 1;
     int ox1 = xorshift(&s) & (TILE - 1), oy1 = xorshift(&s) & (TILE - 1);

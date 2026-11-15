@@ -52,3 +52,10 @@ typedef enum { kIconGrid, kIconShare } IconKind;
 }
 - (void)setText:(NSString *)text;
 @end
+
+// Transparent view that sends action to target after a finger is held on it for a while.
+@interface HoldView : UIView {
+    id target; SEL action;
+}
+- (id)initWithFrame:(CGRect)frame target:(id)target action:(SEL)action;
+@end

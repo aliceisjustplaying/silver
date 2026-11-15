@@ -71,6 +71,8 @@ enum { kSharePort = 8080 };
     grid = [[GridView alloc] initWithFrame:preview.frame];
     grid.hidden = ![[NSUserDefaults standardUserDefaults] boolForKey:@"grid"];
     [window addSubview:grid];
+    // Touch and hold the viewfinder: save debug information and restart the preview.
+    [window addSubview:[[[HoldView alloc] initWithFrame:CGRectMake(0, 30, 320, 391) target:self action:@selector(debugHold)] autorelease]];
     flash = [[UIView alloc] initWithFrame:preview.frame];
     flash.backgroundColor = [UIColor whiteColor]; flash.alpha = 0; flash.userInteractionEnabled = NO;
     [window addSubview:flash];
@@ -181,6 +183,7 @@ enum { kSharePort = 8080 };
     [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:NO];
     [[UIApplication sharedApplication] setStatusBarHidden:NO animated:NO];
     roll.view.frame = CGRectMake(0, 0, 320, 480);
+    [camera pause];
     [roll viewWillAppear:NO];
     [window addSubview:roll.view];
     [roll viewDidAppear:NO];
@@ -193,6 +196,7 @@ enum { kSharePort = 8080 };
     [roll viewDidDisappear:NO];
     [roll release]; roll = nil;
     [[UIApplication sharedApplication] setStatusBarHidden:YES animated:NO];
+    [camera resume];
 }
 
 - (void)shoot {
@@ -228,6 +232,27 @@ enum { kSharePort = 8080 };
     [self showStatus:[reason uppercaseString]];
 }
 
+// Saves what's needed to debug a bad viewfinder into ~/Library/Logs/Silver/<time>/:
+// the screen, the raw camera frame, the displayed frame, camera and sensor state and the log.
+// Then restarts the preview, which rebuilds the capture surfaces.
+- (void)debugHold {
+    NSDateFormatter *fmt = [[[NSDateFormatter alloc] init] autorelease];
+    [fmt setDateFormat:@"yyyyMMdd-HHmmss"];
+    NSString *dir = [NSHomeDirectory() stringByAppendingFormat:@"/Library/Logs/Silver/%@", [fmt stringFromDate:[NSDate date]]];
+    [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
+    CGImageRef img = UIGetScreenImage();
+    [UIImagePNGRepresentation([UIImage imageWithCGImage:img]) writeToFile:[dir stringByAppendingPathComponent:@"screen.png"] atomically:NO];
+    CGImageRelease(img);
+    [[NSFileManager defaultManager] copyItemAtPath:@"/tmp/silver.log" toPath:[dir stringByAppendingPathComponent:@"silver.log"] error:NULL];
+    [camera dumpNextFrameTo:dir];
+    Log(@"debug hold: saving to %@, then restarting the preview", dir);
+    [self showStatus:@"DEBUG SAVED · RESTARTING"];
+    [self performSelector:@selector(showStatus:) withObject:nil afterDelay:2];
+    [self performSelector:@selector(restartPreview) withObject:nil afterDelay:0.5];   // after the dump frame
+}
+
+- (void)restartPreview { [camera pause]; [camera resume]; }
+
 - (void)screenshot {
     CGImageRef img = UIGetScreenImage();
     [UIImagePNGRepresentation([UIImage imageWithCGImage:img]) writeToFile:@"/tmp/silver-screen.png" atomically:YES];
@@ -248,6 +273,7 @@ enum { kSharePort = 8080 };
     else if ([cmd isEqualToString:@"roll"]) [self openRoll];
     else if ([cmd isEqualToString:@"rollphoto"]) [CameraRoll showNewestIn:roll];
     else if ([cmd isEqualToString:@"unroll"]) [self closeRoll];
+    else if ([cmd isEqualToString:@"debug"]) [self debugHold];
     else if ([cmd isEqualToString:@"screenshot"]) [self performSelector:@selector(screenshot) withObject:nil afterDelay:0.5];
     return YES;
 }

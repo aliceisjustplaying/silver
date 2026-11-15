@@ -210,3 +210,16 @@ CGFloat DrawSpaced(NSString *text, CGPoint at, UIFont *font, CGFloat spacing) {
             if (qrcodegen_getModule(qr, x, y)) CGContextFillRect(c, CGRectMake(ox + x * m, oy + y * m, m, m));
 }
 @end
+
+@implementation HoldView
+- (id)initWithFrame:(CGRect)f target:(id)t action:(SEL)a {
+    if ((self = [super initWithFrame:f])) { target = t; action = a; self.backgroundColor = [UIColor clearColor]; }
+    return self;
+}
+- (void)fire { [target performSelector:action]; }
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event { [self performSelector:@selector(fire) withObject:nil afterDelay:1.5]; }
+- (void)cancelHold { [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(fire) object:nil]; }
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {}
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event { [self cancelHold]; }
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event { [self cancelHold]; }
+@end
