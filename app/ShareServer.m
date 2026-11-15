@@ -1,5 +1,6 @@
 #import "ShareServer.h"
-#import "Roll.h"
+#import "CameraRoll.h"
+#import "ImageIO.h"
 #import "Log.h"
 #include <arpa/inet.h>
 #include <ifaddrs.h>
@@ -26,11 +27,24 @@ static void sendResponse(int fd, int status, const char *type, NSData *body, BOO
     if (!head) sendAll(fd, [body bytes], [body length]);
 }
 
+// URL names for the Camera Roll's photos: "100APPLE-IMG_0032" -> its path, newest first.
+static NSArray *photoNames(NSDictionary **pathsOut) {
+    NSMutableArray *names = [NSMutableArray array];
+    NSMutableDictionary *paths = [NSMutableDictionary dictionary];
+    for (NSString *path in [CameraRoll photoPaths]) {
+        NSString *n = [NSString stringWithFormat:@"%@-%@", [[path stringByDeletingLastPathComponent] lastPathComponent],
+                       [[path lastPathComponent] stringByDeletingPathExtension]];
+        [names addObject:n]; [paths setObject:path forKey:n];
+    }
+    if (pathsOut) *pathsOut = paths;
+    return names;
+}
+
 static NSData *galleryPage(void) {
-    NSArray *names = [Roll photoNames];
+    NSArray *names = photoNames(NULL);
     NSMutableString *html = [NSMutableString stringWithString:
         @"<!doctype html><html><head><meta charset=utf-8>"
-        "<meta name=viewport content='width=device-width,initial-scale=1'><title>Silver</title><style>"
+        "<meta name=viewport content='width=device-width,initial-scale=1'><title>Silver · Camera Roll</title><style>"
         "body{margin:0;background:#000;color:#ddd;font:15px -apple-system,Helvetica,sans-serif}"
         "h1{font-weight:400;letter-spacing:.3em;font-size:15px;margin:18px 14px 4px;color:#e5b83b}"
         "p{margin:0 14px 14px;color:#888}"
@@ -38,12 +52,38 @@ static NSData *galleryPage(void) {
         ".g a{display:block;aspect-ratio:3/4;background:#111}"
         ".g img{width:100%;height:100%;object-fit:cover;display:block}"
         "</style></head><body><h1>SILVER</h1>"];
-    [html appendFormat:@"<p>%lu photo%@. Tap one, then touch and hold it to save it to Photos.</p><div class=g>",
+    [html appendFormat:@"<p>Camera Roll: %lu photo%@. Tap one, then touch and hold it to save it to Photos.</p><div class=g>",
         (unsigned long)[names count], [names count] == 1 ? @"" : @"s"];
     for (NSString *n in names)
         [html appendFormat:@"<a href='/p/%@.jpg'><img src='/t/%@.jpg' loading=lazy></a>", n, n];
     [html appendString:@"</div></body></html>"];
     return [html dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+// Gallery thumbnails (about 0.6 s each: ImageIO decodes at reduced scale). They're made
+// newest first by a warm-up thread when sharing starts, or on request, and kept in memory.
+static NSMutableDictionary *gThumbs;
+static NSData *thumbnail(NSString *name, NSString *path) {
+    NSData *d;
+    @synchronized ([ShareServer class]) {
+        if (!gThumbs) gThumbs = [[NSMutableDictionary alloc] init];
+        d = [[[gThumbs objectForKey:name] retain] autorelease];
+    }
+    if (!d && (d = JPEGThumbnail(path, 240)))
+        @synchronized ([ShareServer class]) { [gThumbs setObject:d forKey:name]; }
+    return d;
+}
+
+static void *warmThumbnails(void *arg) {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    NSDictionary *paths;
+    for (NSString *n in photoNames(&paths)) {
+        NSAutoreleasePool *inner = [NSAutoreleasePool new];
+        thumbnail(n, [paths objectForKey:n]);
+        [inner release];
+    }
+    [pool release];
+    return NULL;
 }
 
 static void handle(int fd) {
@@ -66,9 +106,12 @@ static void handle(int fd) {
         if ([p isEqualToString:@"/"]) {
             body = galleryPage(); type = "text/html; charset=utf-8";
         } else if (([p hasPrefix:@"/p/"] || [p hasPrefix:@"/t/"]) && [p hasSuffix:@".jpg"]) {
+            NSDictionary *paths;
+            photoNames(&paths);
             NSString *name = [[p substringFromIndex:3] stringByDeletingPathExtension];
-            if ([[Roll photoNames] containsObject:name])     // only names we wrote: no path traversal
-                body = [NSData dataWithContentsOfFile:[p hasPrefix:@"/p/"] ? [Roll pathForPhoto:name] : [Roll pathForThumb:name]];
+            NSString *file = [paths objectForKey:name];      // only Camera Roll photos: no path traversal
+            if (file && [p hasPrefix:@"/p/"]) body = [NSData dataWithContentsOfFile:file];
+            else if (file) body = thumbnail(name, file);
         }
         if (body) sendResponse(fd, 200, type, body, head);
         else sendResponse(fd, 404, "text/plain", [NSData dataWithBytes:"not found\n" length:10], head);
@@ -117,6 +160,8 @@ static void *serve(void *arg) {
     }
     pthread_t t;
     pthread_create(&t, NULL, serve, (void *)(intptr_t)listenFd);
+    pthread_detach(t);
+    pthread_create(&t, NULL, warmThumbnails, NULL);
     pthread_detach(t);
     running = YES;
     Log(@"share server listening on %d", port);

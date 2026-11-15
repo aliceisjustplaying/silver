@@ -5,10 +5,10 @@
 #import "Film.h"
 #import "Log.h"
 #import "Private.h"
-#import "Roll.h"
+#import "Develop.h"
 #import "ShareServer.h"
 #import "Views.h"
-#import "Roll+System.h"
+#import "CameraRoll.h"
 
 enum { kSharePort = 8080 };
 
@@ -34,7 +34,7 @@ enum { kSharePort = 8080 };
 @end
 
 @interface App (Private)
-- (void)developed:(NSString *)name;
+- (void)developed:(NSDictionary *)result;
 - (void)closeRoll;
 @end
 
@@ -57,8 +57,7 @@ enum { kSharePort = 8080 };
 }
 
 - (void)loadThumb {
-    NSArray *names = [Roll photoNames];
-    [thumb setImage:[names count] ? [UIImage imageWithContentsOfFile:[Roll pathForThumb:[names objectAtIndex:0]]] : nil];
+    [thumb setImage:[CameraRoll wellImage]];
 }
 
 - (void)buildUI {
@@ -140,7 +139,7 @@ enum { kSharePort = 8080 };
     [self closeRoll];
     if (!shareView) [self buildShareView];
     NSString *ip = [ShareServer wifiAddress];
-    NSUInteger count = [[Roll photoNames] count];
+    NSUInteger count = [[CameraRoll photoPaths] count];
     if (ip && [server startOnPort:kSharePort]) {
         NSString *url = [NSString stringWithFormat:@"http://%@:%d/", ip, kSharePort];
         [qr setText:url]; qr.hidden = NO;
@@ -174,8 +173,13 @@ enum { kSharePort = 8080 };
 
 - (void)openRoll {
     [roll release];
-    roll = [[SystemRoll navigationControllerWithDoneTarget:self action:@selector(closeRoll)] retain];
+    roll = [[CameraRoll navigationControllerWithDoneTarget:self action:@selector(closeRoll)] retain];
     if (!roll) return;
+    // The Photos UI is laid out full screen under a translucent status bar (that's what it
+    // switches to on appearing). Show the status bar before the navigation bar lays out so it
+    // sits below it, as in the Photos app.
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:NO];
+    [[UIApplication sharedApplication] setStatusBarHidden:NO animated:NO];
     roll.view.frame = CGRectMake(0, 0, 320, 480);
     [roll viewWillAppear:NO];
     [window addSubview:roll.view];
@@ -206,17 +210,17 @@ enum { kSharePort = 8080 };
 
 - (void)camera:(Camera *)c tookPhoto:(NSData *)jpeg {
     if (!jpeg) { [self developed:nil]; return; }
-    [Roll develop:jpeg stock:&kFilmStocks[stock] previewMean:shutterMean target:self action:@selector(developed:)];
+    [Develop develop:jpeg stock:&kFilmStocks[stock] previewMean:shutterMean target:self action:@selector(developed:)];
 }
 
-- (void)developed:(NSString *)name {
+- (void)developed:(NSDictionary *)result {
     developing = NO;
     shutter.enabled = YES;
-    [self showStatus:name ? nil : @"PHOTO FAILED"];
-    if (!name) { [self performSelector:@selector(showStatus:) withObject:nil afterDelay:2]; return; }
-    [self loadThumb];
-    // Also put a copy in the Camera Roll.
-    UIImageWriteToSavedPhotosAlbum([UIImage imageWithContentsOfFile:[Roll pathForPhoto:name]], nil, NULL, NULL);
+    BOOL ok = result && [CameraRoll saveJPEG:[result objectForKey:@"jpeg"] image:[result objectForKey:@"image"]
+                                     preview:[result objectForKey:@"preview"]];
+    [self showStatus:ok ? nil : @"PHOTO FAILED"];
+    if (!ok) { [self performSelector:@selector(showStatus:) withObject:nil afterDelay:2]; return; }
+    [thumb setImage:[result objectForKey:@"preview"]];
 }
 
 - (void)cameraFailed:(Camera *)c reason:(NSString *)reason {
@@ -242,7 +246,7 @@ enum { kSharePort = 8080 };
     else if ([cmd isEqualToString:@"grid"]) [self toggleGrid];
     else if ([cmd isEqualToString:@"stock"]) [self nextStock];
     else if ([cmd isEqualToString:@"roll"]) [self openRoll];
-    else if ([cmd isEqualToString:@"rollphoto"]) [SystemRoll showNewestIn:roll];
+    else if ([cmd isEqualToString:@"rollphoto"]) [CameraRoll showNewestIn:roll];
     else if ([cmd isEqualToString:@"unroll"]) [self closeRoll];
     else if ([cmd isEqualToString:@"screenshot"]) [self performSelector:@selector(screenshot) withObject:nil afterDelay:0.5];
     return YES;

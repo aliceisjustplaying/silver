@@ -243,3 +243,28 @@ The homemade viewer (`Viewer.m`) is deleted. The thumbnail opens the real Camera
 Also in this round:
 - The home-screen icon now matches the new shutter: a gold ring around a flat crescent.
 - CamProbe is uninstalled from the phone. Its source stays in `probe/` as the record of the experiments.
+
+## Day 1: one copy of every photo, saved like Apple's Camera app
+
+Feedback:
+- the status bar overlapped the Camera Roll's navigation bar;
+- right after developing, the newest photo showed as black for about two seconds;
+- and every photo was stored twice: once in Silver's own folder (full size, screen copy and thumbnail) and once in the Camera Roll through `UIImageWriteToSavedPhotosAlbum`.
+
+**Saving the way the Camera app does.** Searching `PhotoLibrary` for code that uses the selector `addImage:withPreview:exifProperties:date:jpegData:notifyingTarget:selector:contextInfo:` turned up `PLSaveImageToCameraRollWithJPEGData`. Its disassembly is a one-line wrapper around `-[PLCameraAlbum addImage:…]`, with arguments in this order:
+1. the image;
+2. the preview (`nil` in the wrapper);
+3. EXIF properties;
+4. the date;
+5. the JPEG bytes;
+6. the target, selector and context to notify.
+
+Silver now calls the method directly with its finished JPEG, the decoded full image and its 400×533 screen copy as the preview. The JPEG is written into DCIM untouched, with no second encode. Saving takes 140–167 ms. `+[PLCameraAlbum savePreviewWellImage:]` and `+previewWellImage` handle the shutter-side thumbnail, the same "image well" the Camera app uses.
+
+**One copy.** `Library/Silver` is gone; the Camera Roll is the only store. The old folder's six photos were exact duplicates of `IMG_0027` to `IMG_0032`, so the folder was deleted. The develop step returns the JPEG and images in memory instead of writing files (`app/Develop.m`, with ImageIO helpers in `app/ImageIO.m`).
+
+**Sharing the Camera Roll.** The share page now lists every JPEG in `/var/mobile/Media/DCIM/*/`, named like `100APPLE-IMG_0032`. The system's own thumbnails (`.MISC/IMG_xxxx.THM`) are only 75×75, too small for a modern phone. So the server makes 240-pixel thumbnails with `CGImageSourceCreateThumbnailAtIndex` (about 0.6 s each, since ImageIO decodes at reduced scale). A background thread makes them newest first as soon as Share opens, and keeps them in memory. Once they're made, the gallery loads in 0.13 s and each thumbnail in 0.06 s.
+
+**Status bar.** `PLAlbumViewController` switches to a translucent status bar and lays out full screen under it. Silver now shows the status bar (`UIStatusBarStyleBlackTranslucent`) *before* the navigation controller lays out, so the bar sits below it as in the Photos app, and hides it again on Done.
+
+Still to check with a lit scene: whether the newest photo now appears immediately in the browser. Every test shot in this round was taken face-down (preview mean 3.9).
