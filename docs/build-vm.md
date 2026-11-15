@@ -33,10 +33,11 @@ The VM runs OpenSSH 5.2, which offers only `ssh-rsa` and `ssh-dss` host keys and
 
 How the key was installed: the host served `snowleopard_vm.pub` with `python3 -m http.server --bind 127.0.0.1`, and the VM fetched it with `curl http://10.0.2.2:<port>/key.pub >> ~/.ssh/authorized_keys`.
 
-Two fixes were needed in the VM:
+One fix was needed in the VM:
 
 - **Home folder permissions.** Turning on File Sharing had made `/Users/alice` world-writable (`drwxrwxrwx+`). sshd's `StrictModes` then refused the key (`/var/log/secure.log`: `Authentication refused: bad ownership or modes for directory /Users/alice`). Fixed with `chmod 755 ~`.
-- **Passwordless sudo.** `alice` can run `sudo` without a password (`sudo -n true` succeeds), so the host can run root commands over SSH.
+
+`sudo` over SSH needs a password (`/etc/sudoers` is unchanged). A `sudo` in the VM's Terminal leaves a timestamp that lets SSH sessions run `sudo` for a few minutes afterward.
 
 ## SMB
 
@@ -83,3 +84,13 @@ sudo smbcontrol smbd reload-config
 The original file is saved at `/etc/smb.conf.orig`. Samba's other generated settings live in `/var/db/smb.conf`, which `smb-sync-preferences` regenerates. Don't edit that file.
 
 To raise Samba logging until the next smbd restart: `sudo smbcontrol smbd debug 5`.
+
+## Installing Xcode 3.2.6
+
+The installer image is `xcode_3.2.6_and_ios_sdk_4.3.dmg`. Installing it with the clock at the real date fails with "An unknown installation error occurred". `/var/log/install.log` gives the cause:
+
+```
+Failed install preflight: ... "The package “iPhoneSDKTools.pkg” is untrusted." ... CSSMERR_TP_CERT_EXPIRED
+```
+
+The certificate that signed the packages has expired, so the fix is to set the VM's clock back to 2011 for the install.
