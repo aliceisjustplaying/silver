@@ -1,7 +1,8 @@
 #!/bin/sh
-# SSH to the jailbroken iPhone. Its address comes from IPHONE_HOST or the untracked .phone-host.
+# SSH to the jailbroken iPhone. Its address comes from IPHONE_HOST or the untracked .phone-host;
+# IPHONE_PORT overrides the port (e.g. 2222 with `iproxy 2222:22` over USB).
 host=${IPHONE_HOST:-$(cat "$(dirname "$0")/../.phone-host" 2>/dev/null)}
 [ -n "$host" ] || { echo "set IPHONE_HOST or write the phone's address to .phone-host" >&2; exit 2; }
 exec ssh -i ~/.ssh/iphone2g -o IdentitiesOnly=yes -o HostKeyAlgorithms=+ssh-rsa \
   -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts_iphone2g \
-  -o ConnectTimeout=15 -o LogLevel=ERROR root@"$host" "$@"
+  -o ConnectTimeout=15 -o LogLevel=ERROR -p "${IPHONE_PORT:-22}" root@"$host" "$@"
