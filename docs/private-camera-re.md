@@ -166,10 +166,31 @@ if (CameraDeviceCreate(kCFAllocatorDefault, NULL, &cam) == 0) {
 
 `FilterAndPresent` stands for the filter pipeline, written separately. Example: copy into a 512×512 RGBA texture with `glTexSubImage2D` and filter with `GL_COMBINE`, or run a CPU lookup table first.
 
+## Measured on the device
+
+CamProbe (`probe/`) was run on the phone, a jailbroken iPhone1,1 on 3.1.3 (7E18). This is from `/tmp/camprobe.log`:
+
+```
+CameraDeviceCreate -> 0x00000000 dev 0x116460
+event 1 surface 0x0
+CameraDeviceStartPreview -> 0x00000000
+first frame: 304x400 rowBytes 1216 format 42475241
+13.3 fps, memcpy 21.02 ms/frame
+...
+4.8 fps, memcpy 21.49 ms/frame
+...
+14.8 fps, memcpy 22.16 ms/frame
+```
+
+- **The approach works.** An app in `/Applications` can open the sensor in-process, and frames arrive as event `8` exactly as the disassembly predicted.
+- **Format.** Frames are 304×400 `'BGRA'`, with 1216 bytes per row.
+- **Frame rate.** It varies from about 5 to 14.8 fps. *Inferred:* the drop comes from lighting, since the copy time stays flat while the rate changes.
+- **Reading is slow.** A `memcpy` of one frame (486 KB) takes about 21–23 ms, roughly 22 MB/s. That fits the `PurpleGfxMem` memory not being cached for CPU reads. At 15 fps, a plain copy uses about a third of the CPU.
+
 ## Open questions only the device can answer
 
-1. **Permission.** Can a jailbroken app (in `/Applications`, running as `mobile`, not sandboxed) open the `IOCameraSensor` user client? Does it collide with mediaserverd if `AVCapture` was used earlier in the session? `IOServiceOpen` returns its error, and `CameraDeviceCreate` returns `0xe00002c0` if no service matches.
-2. **Frame rate.** Measure it by timestamping event 8. Cycorder on this hardware reported 6–15 fps depending on light. `CameraDeviceGetPropertiesCopy` (`0x33e06f48`) exposes `PreviewMaxFPS` and `PreviewCurrentFPS` keys, but their values weren't decoded.
-3. **Read speed.** The buffers come from the `"PurpleGfxMem"` region. If that memory isn't cached for CPU reads, reading pixels will be slow. A 304×400×4 frame is about 486 KB, so per-frame copy time needs to be measured.
+1. ~~**Permission.**~~ Answered: yes (see above). Original question: can a jailbroken app (in `/Applications`, running as `mobile`, not sandboxed) open the `IOCameraSensor` user client? Does it collide with mediaserverd if `AVCapture` was used earlier in the session? `IOServiceOpen` returns its error, and `CameraDeviceCreate` returns `0xe00002c0` if no service matches.
+2. ~~**Frame rate.**~~ Measured above. Original note: measure it by timestamping event 8. Cycorder on this hardware reported 6–15 fps depending on light. `CameraDeviceGetPropertiesCopy` (`0x33e06f48`) exposes `PreviewMaxFPS` and `PreviewCurrentFPS` keys, but their values weren't decoded.
+3. ~~**Read speed.**~~ Measured above: about 22 ms per frame. Original note: the buffers come from the `"PurpleGfxMem"` region. If that memory isn't cached for CPU reads, reading pixels will be slow. A 304×400×4 frame is about 486 KB, so per-frame copy time needs to be measured.
 4. **Orientation and colors.** Confirm that the frame is portrait 304×400 and that the BGRA channel order shows correct colors. *Inferred:* the sensor rectangle is 400×304 landscape and the buffer is created 304 wide by 400 high, so the accelerator rotates.
 5. **Run-loop requirement.** *Inferred:* events arrive only after `CameraDeviceScheduleWithRunLoop`, because the accelerator's run-loop source is the only route to `CameraDeviceCaptureCallback`.
