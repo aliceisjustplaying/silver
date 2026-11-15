@@ -187,6 +187,52 @@ first frame: 304x400 rowBytes 1216 format 42475241
 - **Frame rate.** It varies from about 5 to 14.8 fps. *Inferred:* the drop comes from lighting, since the copy time stays flat while the rate changes.
 - **Reading is slow.** A `memcpy` of one frame (486 KB) takes about 21–23 ms, roughly 22 MB/s. That fits the `PurpleGfxMem` memory not being cached for CPU reads. At 15 fps, a plain copy uses about a third of the CPU.
 
+## Live black-and-white pipeline (measured)
+
+CamProbe's benchmark run (`probe/`, logged to `/tmp/camprobe.log`), on the first camera frame. The output is 304×400 = 121,600 pixels.
+
+| Operation | Time |
+| --- | --- |
+| `memcpy` camera surface → `malloc` | 7.9–8.2 ms |
+| `gray_bgra` (ARMv6 assembly, `probe/gray.s`) camera surface → `malloc` | 11.4 ms |
+| `gray_bgra` `malloc` → `malloc` | 6.3 ms |
+| the same conversion in plain C, `malloc` → `malloc` | 14.3 ms |
+| `gray_bgra` `malloc` → display surface | 6.7–7.1 ms |
+
+`gray_bgra` matches the C reference exactly (`0 of 121600` mismatches).
+
+**Display.** A `CoreSurfaceBuffer` (`'BGRA'`, `"PurpleGfxMem"`) works directly as `CALayer.contents`. Alternating between two such surfaces each frame refreshes the layer. The `/tmp/camprobe-mode1.png` screenshot shows a correct black-and-white image. The live loop costs about 10 ms per frame (camera surface → gray → display surface → layer), against 25 ms for the first probe's color `CGImage` path.
+
+**The hardware copy engine doesn't help.** `CoreSurfaceAcceleratorTransferSurface` only succeeds into `"PurpleGfxMem"` or `"PurpleEDRAM"` surfaces, takes 8–9 ms, and every sampled pixel differs from the source. Every other destination fails:
+- default memory or cache mode `0x300` returns `0xe00002c8`;
+- `565L` and `L008` return `0xe00002c7`;
+- `2vuy`, `yuvs` and `L565` return `0xe00002c8`.
+
+**Frame rate is capped at 15 fps.** `H1ISPCaptureDeviceCopyProperty` returns a constant 15 for `ImagerSupportedMaxFrameRateForCurrentResolution`. Measured rates fall into steps of 14.6, 12.5, 6.6 and 5.5 fps as the auto-exposure lengthens frames in dim light.
+
+**Sensor variables.** They're reachable through the `IOCameraSensor` connection that `CameraDeviceCreate` stores at `dev + 0xac`. From `H1ISP.mediacapture`:
+- read is selector 3, with inputs `{var, bits}` and one output;
+- write is selector 4, with inputs `{var, bits, value, mask}`;
+- `var` is `driver << 16 | offset`.
+
+The variables match the MT9D112 sensor's map:
+
+| Variable | Address | Live value |
+| --- | --- | --- |
+| `seq.mode` | `0x10002` | bit 0 = auto-exposure, bit 2 = auto white balance (as used by `setAutoExposure` and `setAutoWhiteBalance`) |
+| `seq.cmd` | `0x10003` | write 6 = refresh mode, 5 = refresh |
+| `ae.maxIndex` | `0x2000c` | `0x12`; Apple's `toggleFixedFramerate` writes 1 for fixed and `0x12` for variable |
+| preview output width × height | `0x70003`, `0x70005` | 400 × 304 |
+| capture output width × height | `0x70007`, `0x70009` | 1600 × 1200 |
+| preview frame lines | `0x70023` | 675 |
+| preview line length | `0x70025` | 1250 |
+
+Experiment, with each change followed by refresh mode and refresh:
+- **Shorter lines are slower, not faster.** Line length 1100, 1000, 900 and 800 all gave 7–11.5 fps instead of 14.6.
+- **Fewer frame lines didn't help.** 640 frame lines, with line length 1000, gave 7–12 fps.
+- **Restoring works.** Writing back 1250 / 675 / `0x12` returned it to 14.6 fps.
+- **`ae.maxIndex = 4` kept 14.6 fps in this scene.** Its intended effect, holding the rate in dim light, still needs a dim scene to confirm.
+
 ## Open questions only the device can answer
 
 1. ~~**Permission.**~~ Answered: yes (see above). Original question: can a jailbroken app (in `/Applications`, running as `mobile`, not sandboxed) open the `IOCameraSensor` user client? Does it collide with mediaserverd if `AVCapture` was used earlier in the session? `IOServiceOpen` returns its error, and `CameraDeviceCreate` returns `0xe00002c0` if no service matches.

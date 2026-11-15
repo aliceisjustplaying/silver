@@ -9,3 +9,5 @@ tar c probe | scripts/vm 'mkdir -p ~/build && tar x -C ~/build && make -s -C ~/b
 scripts/vm 'tar c -C ~/build/probe CamProbe.app' | tar x -C "$tmp"
 nix run nixpkgs#ldid -- -S "$tmp/CamProbe.app/CamProbe"
 tar c -C "$tmp" CamProbe.app | scripts/phone 'rm -rf /Applications/CamProbe.app && tar x -C /Applications && su mobile -c uicache'
+# relaunch it (the app registers the camprobe: URL scheme)
+scripts/phone 'killall CamProbe 2>/dev/null; sleep 1; su mobile -c "uiopen camprobe:"'

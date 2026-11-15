@@ -17,6 +17,10 @@ thumb = addr & 1; addr &= ~1
 md = Cs(CS_ARCH_ARM, CS_MODE_THUMB if thumb else CS_MODE_ARM); md.detail = False
 code = c.f[c.off(addr): c.off(addr)+n*4]
 def desc(v):
+    try:
+        if syms.get(c.u32(v)) == '___CFConstantStringClassReference':
+            return 'cf @' + repr(c.cstr(c.u32(v + 8)))
+    except Exception: pass
     if v in syms: return syms[v]
     if v in stubs: return 'stub:'+stubs[v]
     o = c.off(v)
@@ -39,6 +43,7 @@ def desc(v):
             if len(s) > 2 and all(32 <= b < 127 for b in s): return 'cf @'+repr(s.decode())
     except Exception: pass
     return None
+lit = {}
 def gen():
     pos = 0
     while pos < len(code):
@@ -50,11 +55,20 @@ def gen():
 for i in gen():
     if i.address != addr and i.address in syms: print(f'---- {syms[i.address]}'); 
     note = ''
+    ops = [o.strip() for o in i.op_str.replace('[','').replace(']','').split(',')]
+    if not thumb and len(ops) == 3 and ops[1] == 'pc' and ops[2] in lit and ops[0] == ops[2] and i.mnemonic in ('add', 'ldr'):
+        tgt = i.address + 8 + lit[ops[2]]
+        if i.mnemonic == 'add':
+            note = f'-> 0x{tgt:x} {desc(tgt) or ""}'
+        else:
+            w = c.u32(tgt); note = f'*0x{tgt:x} = 0x{w:x} {stubs.get(tgt) and "&"+stubs[tgt] or desc(w) or ""}'
+        lit.pop(ops[2], None)
+        print(f'{i.address:08x}  {i.mnemonic:8} {i.op_str:30} {note}'); continue
     if i.mnemonic.startswith('ldr') and '[pc' in i.op_str:
         try:
             off = int(i.op_str.split('#')[-1].rstrip(']'), 0) if '#' in i.op_str else 0
             pa = (i.address + (4 if thumb else 8)) & ~3 if thumb else i.address + 8
-            v = c.u32(pa + off); d = desc(v)
+            v = c.u32(pa + off); d = desc(v); lit[ops[0]] = v
             note = f'=0x{v:x} {d or ""}'
         except Exception as e: note = str(e)
     elif i.mnemonic in ('bl','blx','b') and i.op_str.startswith('#'):

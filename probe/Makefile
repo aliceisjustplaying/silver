@@ -3,11 +3,11 @@ DEV = /Developer/Platforms/iPhoneOS.platform/Developer
 SDK = $(DEV)/SDKs/iPhoneOS4.3.sdk
 CC  = $(DEV)/usr/bin/gcc-4.2
 CFLAGS = -arch armv6 -isysroot $(SDK) -miphoneos-version-min=3.1 -mno-thumb -O2 -std=gnu99 -Wall
-LIBS = -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore
+LIBS = -framework IOKit -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore
 
-CamProbe.app: main.m Info.plist
+CamProbe.app: main.m gray.s Info.plist
 	mkdir -p $@
-	$(CC) $(CFLAGS) -o $@/CamProbe main.m $(LIBS)
+	$(CC) $(CFLAGS) -o $@/CamProbe main.m gray.s $(LIBS)
 	cp Info.plist $@/Info.plist
 	printf 'APPL????' > $@/PkgInfo
 
