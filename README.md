@@ -5,7 +5,7 @@
 ## Code and scripts
 
 - `app/`: the Silver app.
-- `probe/`: the benchmark and experiment app (CamProbe).
+- `probe/`: the benchmark and experiment app (CamProbe), kept as the record of the experiments.
 - `scripts/deploy`: builds Silver in the VM, signs it, installs it and launches it.
 - `scripts/deploy-probe`: the same for CamProbe.
 - `scripts/vm`: SSH into the build VM.
@@ -14,7 +14,7 @@
 
 ## Status
 
-- **Working on the phone:** live B&W preview at about 14.6 fps (10 ms of work per frame), three film stocks (SILVER, ASH, HIGH CONTRAST), grain on the photo, brightness matched to the viewfinder, thirds grid, last-photo viewer with pinch and double-tap zoom and the Wi-Fi share page.
+- **Working on the phone:** live B&W preview at about 14.6 fps (10 ms of work per frame), three film stocks (SILVER, ASH, HIGH CONTRAST), grain on the photo, brightness matched to the viewfinder, thirds grid, Camera Roll browser borrowed from the system Photos UI (the private PhotoLibrary framework) and the Wi-Fi share page.
 - **Sharing:** tested from a modern iPhone on the same Wi-Fi network.
 - **Not tested yet:** sharing over a Personal Hotspot, and the preview frame rate in dim light.
 

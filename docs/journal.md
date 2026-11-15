@@ -222,3 +222,24 @@ Feedback from using it in hand:
 | I | SILVER | medium contrast | sun |
 | II | ASH | blacks lifted to 10%, whites capped at 92%, almost no S-curve, lighter grain | haze lines |
 | III | HIGH CONTRAST | full S-curve, slightly darker midtones (gamma 1.12), heavier grain | new moon |
+
+## Day 1: borrowing Apple's photo browser
+
+The homemade viewer's pinch zoom felt bad, and the phone already has a good photo browser. Silver saves every photo to the Camera Roll as well, so it can just borrow Apple's.
+
+The class dump of `PhotoLibrary.framework` has the pieces:
+- `PLCameraAlbum +sharedInstance` is the Camera Roll;
+- `PLAlbumViewController -initWithAlbum:` is the thumbnail grid;
+- `PLPhotoScrollerViewController -_initWithAlbum:lockStatusBar:currentImageIndex:` is the full-screen swipe, zoom and delete browser that the Photos app uses.
+
+The grid only reports a tap through `-albumView:selectedPhoto:`, which only the image picker's subclass implements. So `app/Roll+System.m` builds a subclass at runtime (`objc_allocateClassPair`) that adds that one method and pushes the photo browser at the tapped index.
+
+Two details:
+- Passing `lockStatusBar:NO` made the browser show the status bar over its own navigation bar; `YES` fixes it.
+- iPhone OS 3 has no `rootViewController`, so the navigation controller's view is added to the window and its appear and disappear calls are sent by hand.
+
+The homemade viewer (`Viewer.m`) is deleted. The thumbnail opens the real Camera Roll grid with Apple's navigation bar, and the browser has Apple's zoom, swiping, toolbar and trash button.
+
+Also in this round:
+- The home-screen icon now matches the new shutter: a gold ring around a flat crescent.
+- CamProbe is uninstalled from the phone. Its source stays in `probe/` as the record of the experiments.

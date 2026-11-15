@@ -8,7 +8,7 @@
 #import "Roll.h"
 #import "ShareServer.h"
 #import "Views.h"
-#import "Viewer.h"
+#import "Roll+System.h"
 
 enum { kSharePort = 8080 };
 
@@ -24,7 +24,7 @@ enum { kSharePort = 8080 };
     IconButton *gridButton, *shareButton;
     TextButton *stockLabel;
     UIView *shareView; QRView *qr; UILabel *shareURL, *shareInfo;
-    Viewer *viewer;
+    UINavigationController *roll;
     Camera *camera;
     ShareServer *server;
     int stock;
@@ -35,7 +35,7 @@ enum { kSharePort = 8080 };
 
 @interface App (Private)
 - (void)developed:(NSString *)name;
-- (void)closeViewer;
+- (void)closeRoll;
 @end
 
 @implementation App
@@ -101,7 +101,7 @@ enum { kSharePort = 8080 };
     bottom.backgroundColor = [UIColor blackColor];
     [window addSubview:bottom];
     thumb = [[ThumbButton alloc] initWithFrame:CGRectMake(20, 428, 33, 44)];   // 3:4 like the photos
-    [thumb addTarget:self action:@selector(openViewer) forControlEvents:UIControlEventTouchUpInside];
+    [thumb addTarget:self action:@selector(openRoll) forControlEvents:UIControlEventTouchUpInside];
     [window addSubview:thumb];
     card = [[FilmCard alloc] initWithFrame:CGRectMake(272, 427, 32, 46)];
     [card addTarget:self action:@selector(nextStock) forControlEvents:UIControlEventTouchUpInside];
@@ -137,7 +137,7 @@ enum { kSharePort = 8080 };
 }
 
 - (void)openShare {
-    [self closeViewer];
+    [self closeRoll];
     if (!shareView) [self buildShareView];
     NSString *ip = [ShareServer wifiAddress];
     NSUInteger count = [[Roll photoNames] count];
@@ -172,16 +172,23 @@ enum { kSharePort = 8080 };
     [self applyStock];
 }
 
-- (void)openViewer {
-    NSArray *names = [Roll photoNames];
-    if (![names count]) return;
-    if (!viewer) viewer = [[Viewer alloc] initWithFrame:CGRectMake(0, 0, 320, 480) closeTarget:self action:@selector(closeViewer)];
-    [viewer showPhoto:[names objectAtIndex:0]];
-    [window addSubview:viewer];
+- (void)openRoll {
+    [roll release];
+    roll = [[SystemRoll navigationControllerWithDoneTarget:self action:@selector(closeRoll)] retain];
+    if (!roll) return;
+    roll.view.frame = CGRectMake(0, 0, 320, 480);
+    [roll viewWillAppear:NO];
+    [window addSubview:roll.view];
+    [roll viewDidAppear:NO];
 }
 
-- (void)closeViewer {
-    [viewer removeFromSuperview];
+- (void)closeRoll {
+    if (!roll) return;
+    [roll viewWillDisappear:NO];
+    [roll.view removeFromSuperview];
+    [roll viewDidDisappear:NO];
+    [roll release]; roll = nil;
+    [[UIApplication sharedApplication] setStatusBarHidden:YES animated:NO];
 }
 
 - (void)shoot {
@@ -225,7 +232,7 @@ enum { kSharePort = 8080 };
 }
 
 // Development hooks: silver://shutter, silver://share, silver://unshare, silver://grid,
-// silver://stock, silver://viewer, silver://zoom (double-tap the viewer's center), silver://screenshot.
+// silver://stock, silver://roll, silver://rollphoto, silver://unroll, silver://screenshot.
 - (BOOL)application:(UIApplication *)app handleOpenURL:(NSURL *)url {
     NSString *cmd = [url host];
     Log(@"url command %@", cmd);
@@ -234,8 +241,9 @@ enum { kSharePort = 8080 };
     else if ([cmd isEqualToString:@"unshare"]) [self closeShare];
     else if ([cmd isEqualToString:@"grid"]) [self toggleGrid];
     else if ([cmd isEqualToString:@"stock"]) [self nextStock];
-    else if ([cmd isEqualToString:@"viewer"]) [self openViewer];
-    else if ([cmd isEqualToString:@"zoom"]) [viewer performSelector:@selector(doubleTapAt:) withObject:[NSValue valueWithCGPoint:CGPointMake(160, 213)]];
+    else if ([cmd isEqualToString:@"roll"]) [self openRoll];
+    else if ([cmd isEqualToString:@"rollphoto"]) [SystemRoll showNewestIn:roll];
+    else if ([cmd isEqualToString:@"unroll"]) [self closeRoll];
     else if ([cmd isEqualToString:@"screenshot"]) [self performSelector:@selector(screenshot) withObject:nil afterDelay:0.5];
     return YES;
 }
