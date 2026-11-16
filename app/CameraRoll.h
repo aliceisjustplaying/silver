@@ -5,7 +5,8 @@
 + (BOOL)available;
 // Saves like the Camera app: JPEG written as-is, preview handed over so Photos can show it at once.
 + (BOOL)saveJPEG:(NSData *)jpeg image:(UIImage *)image preview:(UIImage *)preview;
-+ (UIImage *)wellImage;
+// Small JPEG of the newest photo or screenshot, or nil if the Camera Roll is empty. Slow (~0.5 s).
++ (NSData *)newestThumbnailJPEG;
 // JPG photos and PNG screenshots, newest first.
 + (NSArray *)photoPaths;
 

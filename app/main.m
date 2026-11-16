@@ -58,8 +58,16 @@ enum { kSharePort = 8080 };
     [[NSUserDefaults standardUserDefaults] setInteger:stock forKey:@"stock"];
 }
 
+// The thumbnail follows the Camera Roll, so it updates after deletions in the roll or Photos.
 - (void)loadThumb {
-    [thumb setImage:[CameraRoll wellImage]];
+    [NSThread detachNewThreadSelector:@selector(loadThumbThread) toTarget:self withObject:nil];
+}
+
+- (void)loadThumbThread {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    NSData *jpeg = [CameraRoll newestThumbnailJPEG];
+    [thumb performSelectorOnMainThread:@selector(setImage:) withObject:jpeg ? [UIImage imageWithData:jpeg] : nil waitUntilDone:NO];
+    [pool release];
 }
 
 - (void)buildUI {
@@ -195,6 +203,7 @@ enum { kSharePort = 8080 };
     [roll release]; roll = nil;
     [[UIApplication sharedApplication] setStatusBarHidden:YES animated:NO];
     [camera resume];
+    [self loadThumb];
 }
 
 - (void)shoot {

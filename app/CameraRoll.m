@@ -1,5 +1,6 @@
 #import "CameraRoll.h"
 #import "Log.h"
+#import "ImageIO.h"
 #include <dlfcn.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -46,9 +47,9 @@ static void albumViewSelectedPhoto(UIViewController *self, SEL _cmd, id albumVie
     return ok;
 }
 
-+ (UIImage *)wellImage {
-    Class c = albumClass();
-    return c ? [c performSelector:@selector(previewWellImage)] : nil;
++ (NSData *)newestThumbnailJPEG {
+    NSArray *paths = [self photoPaths];
+    return [paths count] ? JPEGThumbnail([paths objectAtIndex:0], 120) : nil;
 }
 
 + (NSArray *)photoPaths {
