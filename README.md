@@ -55,6 +55,7 @@ The running log is `/tmp/silver.log`. For development, the app also accepts `sil
 | `scripts/` | deploy, plus SSH helpers for the build VM and the phone |
 | `tools/re/` | readers for the iPhone OS 3 shared library cache and an ARM disassembler |
 | `tools/battery/` | dumps the phone's power-source registry properties |
+| `tools/rotationlock/` | rotation lock for iPhone OS 3: a MobileSubstrate tweak plus an SBSettings toggle |
 | `tools/nosimalert/` | a tiny MobileSubstrate tweak that hides SpringBoard's "No SIM Card Installed" alert |
 | `docs/journal.md` | the build log, with dead ends and measurements |
 | `docs/private-camera-re.md` | reverse engineering of the camera path |
