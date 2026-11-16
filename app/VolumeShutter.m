@@ -51,8 +51,13 @@ static NSString *notificationName, *volumeKey;
 - (void)stop {
     if (!running) return;
     [[NSNotificationCenter defaultCenter] removeObserver:self name:notificationName object:nil];
-    [controller setActiveCategoryVolumeTo:original];
+    // Setting the volume, even to its current value, makes SpringBoard show the HUD on the way
+    // out, so only restore it if the shutter actually moved it.
+    float now = original; NSString *category = nil;
+    [controller getActiveCategoryVolume:&now andName:&category];
+    if (fabsf(now - original) > 0.001f) [controller setActiveCategoryVolumeTo:original];
     [[UIApplication sharedApplication] setSystemVolumeHUDEnabled:YES];
+    Log(@"volume shutter off (volume %.3f, original %.3f)", now, original);
     running = NO;
 }
 
