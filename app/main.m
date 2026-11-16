@@ -8,6 +8,7 @@
 #import "Develop.h"
 #import "ShareServer.h"
 #import "Views.h"
+#import "VolumeShutter.h"
 #import "CameraRoll.h"
 
 enum { kSharePort = 8080 };
@@ -27,6 +28,7 @@ enum { kSharePort = 8080 };
     UINavigationController *roll;
     Camera *camera;
     ShareServer *server;
+    VolumeShutter *volumeShutter;
     int stock;
     BOOL developing;
     float shutterMean;
@@ -282,9 +284,17 @@ enum { kSharePort = 8080 };
     [self applyStock];
     [self loadThumb];
     [camera start];
+    volumeShutter = [[VolumeShutter alloc] initWithTarget:self action:@selector(volumeShutterPressed)];
+    [volumeShutter start];
+}
+
+- (void)volumeShutterPressed {
+    if (roll || shareView.superview) return;
+    [self shoot];
 }
 
 - (void)applicationWillTerminate:(UIApplication *)app {
+    [volumeShutter stop];
     [server stop];
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
