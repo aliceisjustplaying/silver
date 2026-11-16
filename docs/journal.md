@@ -359,3 +359,5 @@ What we found afterward:
 **Our own rotation lock** (`tools/rotationlock`) replaces them:
 - *The lock.* A MobileSubstrate tweak loaded into every UIKit app. While locked, it drops `-[UIApplication deviceOrientationChanged:]`, the call GraphicsServices uses to deliver orientation changes.
 - *The switch.* An SBSettings toggle (`isCapable`, `isEnabled`, `getStateFast`, `setState`, `getDelayTime`, the same exports as the toggle it replaces) writes a single `Locked` key to a preferences file.
+
+**Stale thumbnail.** After deleting the newest photo in the Camera Roll, Silver's thumbnail still showed it, because it came from the Camera app's saved "image well" picture, which deletions don't update. The thumbnail now follows the Camera Roll itself. On launch and whenever the roll closes, a background thread makes a 120 px preview of the newest JPG or PNG in DCIM with ImageIO, which takes about half a second.
