@@ -342,3 +342,20 @@ What we found afterward:
   saurik's repo, BigBoss and ios3.party all download fine over plain HTTP. The sources live in `CydiaSources` in `/var/mobile/Library/Preferences/com.saurik.Cydia.plist`, and `sources.list.d/cydia.list` is a symlink to a file Cydia regenerates from it. So the dead entries were removed from the plist itself.
 - **"No SIM Card Installed".** Without a SIM, SpringBoard keeps showing this alert. Every alert-hiding package on BigBoss needs iOS 5 or later, so `tools/nosimalert` is a 15-line MobileSubstrate tweak. It swaps `-[SBAlertItemsController activateAlertItem:]` and drops `SBSIMLockAlertItem`s; both names come from SpringBoard's strings. It's built in the VM, signed with `ldid` and dropped into `/Library/MobileSubstrate/DynamicLibraries/` with a SpringBoard filter plist.
 - **Home-screen wallpaper.** iPhone OS 3 only has lock-screen wallpaper, and even that is replaced by the battery picture while charging, which explained the earlier "black wallpaper" mystery. ios3.party's "iOS3 Wallpaper" package (`com.darlo770.wallpaper`) adds iOS 4-style home-screen wallpapers.
+
+## Day 2: a proper icon, a volume-button shutter and a rotation lock
+
+**Icon.**
+- *Gloss.* Turning off `UIPrerenderedIcon` didn't make SpringBoard add the iOS 3 gloss and rounded corners; apparently that only happens for App Store apps, not ones installed in `/Applications`. So the icon draws them itself.
+- *Position.* It still sat about 2 px lower than its neighbors. Cydia's `iconClassic.png`, Safari's `icon.png` and Melder's `IconClassic.png` are all 59×60, not 57×57: the 57×57 tile sits at (1, 0) with a 1 px margin on each side and a drop shadow underneath. Cydia's icon is an Apple "CgBI" PNG (raw deflate, BGRA, premultiplied); decoding it gave the shadow's opacity, 191 / 143 / 48 in the three rows below the tile. Silver's icon now uses the same 59×60 layout and shadow. Released as 1.1.
+
+**Volume up as the shutter.** iPhone OS 3 sends apps no button events; the volume buttons belong to SpringBoard. Two private pieces make it work:
+- *Detecting presses.* Celestial's `AVSystemController` posts `AVSystemController_SystemVolumeDidChangeNotification`. Silver treats an increase as a shutter press and immediately sets the volume back with `-setActiveCategoryVolumeTo:`. At maximum volume, up can't register a change, so Silver starts one notch below the top.
+- *Hiding the volume pop-up.* `-[UIApplication setSystemVolumeHUDEnabled:]`, whose disassembly shows it calling SpringBoard's `SBSetSystemVolumeHUDEnabled`.
+- *The pop-up on exit.* On leaving the app, re-enabling the pop-up and setting the volume, even to its current value, made SpringBoard flash its volume bar. Silver now only restores the volume if it actually changed.
+
+**A crash that wasn't ours.** SpringBoard crashed twice. Both crash logs, one from before the volume shutter existed, show the same chain: a hardware event passes through Rotation Inhibitor into Activator 1.9.13, which calls a method iPhone OS 3 doesn't have (`-[NSObject doesNotRecognizeSelector:]`). Rotation Inhibitor 1.0.4 hard-requires Activator, and no repo still serves a period-correct Activator. So both were removed, along with FlipSwitch and RocketBootstrap, which only Activator used.
+
+**Our own rotation lock** (`tools/rotationlock`) replaces them:
+- *The lock.* A MobileSubstrate tweak loaded into every UIKit app. While locked, it drops `-[UIApplication deviceOrientationChanged:]`, the call GraphicsServices uses to deliver orientation changes.
+- *The switch.* An SBSettings toggle (`isCapable`, `isEnabled`, `getStateFast`, `setState`, `getDelayTime`, the same exports as the toggle it replaces) writes a single `Locked` key to a preferences file.
